@@ -12,7 +12,7 @@ T-Shirt Scroll is a momentum scroll event using CSS3 using touch event to use in
 
 **How to use**
 
-	$("#scroll").scrll();
+	$("#scroll").scroll();
 
 
 **Todo**

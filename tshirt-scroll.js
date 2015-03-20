@@ -170,7 +170,10 @@
 						"transform-origin": originX + "% " + originY + "%",
 						"transition": transition
 					});
+
+					console.log ()
 				},
+				triggerOnTouchLeave:true,
 				excludedElements:''
 			});
 		});

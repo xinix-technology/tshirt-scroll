@@ -46,20 +46,167 @@
 			// Used for detecting mousewheel stop
 			var timer;
 			// Current item
-			var elem = $(this);
+			var elem = $(this).parent ()
+				timer = null;
 
 			// Assign transform CSS
-			elem.css ("transform", "translate3d(0,0,0)");
+			elem.children ().css ("transform", "translate3d(0,0,0)");
+
+			// Assign Mouse Scroll
+			elem.on('mousewheel', function (event) {
+				var parent = $(this),
+					child = $(this).children ();
+
+				// Map
+				matrix = child.css ("transform").split (", ");
+				mapX = matrix[4];
+				mapY = matrix[5].split (")");
+				mapY = mapY[0];
+
+				// console.log(event, event.deltaX, event.deltaY, event.deltaFactor);
+
+				// Count movement delta
+				deltaX = event.deltaX;
+				deltaY = event.deltaY;
+
+				// Constrain movement
+				posX = (mapX -= (deltaX * 1));
+				posY = (mapY -= (deltaY * -1));
+
+				scrollPosX -= (deltaX * 1);
+				scrollPosY -= (deltaY * -1);
+
+				// Count the viewable boundry
+				if (rubber) {
+					// It's on bottom
+					if ((posX + child.width ()) <= parent.width ()) {
+						posX = parent.width () - child.width ();
+						originX = 100;
+						scaleX = 1 - (deltaX / parent.width ());
+					}
+					if ((posY + child.height ()) <= parent.height ()) {
+						posY = parent.height () - child.height ();
+						originY = 100;
+						scaleY = 1 - (deltaY / parent.height ());
+					}
+
+					// It's on top
+					if (posX >= 0) {
+						originX = posX = 0;
+						scaleX = 1 + (deltaX / parent.width ());
+					}
+					if (posY >= 0) {
+						originY = posY = 0;
+						scaleY = 1 + (deltaY / parent.height ());
+					}
+				} else {
+					var timer = 256,
+						_transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+
+					// TODO: It's on bottom
+					if ((posX + child.width ()) <= (parent.width () - (parent.width () / 2))) {
+						transition = _transition;
+						posX = (parent.width () - (parent.width () / 2)) - child.width () + deltaX;
+					}
+					if ((posY + child.height ()) <= (parent.height () - (parent.height () / 2))) {
+						transition = _transition;
+						posY = (parent.height () - (parent.height () / 2)) - child.height () + deltaY;
+					}
+
+					// It's on top
+					if (posX >= parent.width () / 2) {
+						transition = _transition;
+						posX = (parent.width () / 2) - deltaX;
+					}
+					if (posY >= parent.height () / 2) {
+						transition = _transition;
+						posY = (parent.height () / 2) - deltaX;
+					}
+
+					// Save the current element
+					window.tempparent = parent;
+
+					// Prevent element to over scrolled - should be on mouse up
+					clearTimeout (window.temptimer);
+					window.temptimer = setTimeout (function () {
+						tempparent.each(function (){
+							// It's on bottom
+							if ((posX + child.width ()) <= parent.width ())
+								posX = parent.width () - child.width ();
+							if ((posY + child.height ()) <= parent.height ())
+								posY = parent.height () - child.height ();
+
+							// It's on top
+							if (posX >= 0)
+								posX = 0;
+							if (posY >= 0)
+								posY = 0;
+
+							transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+
+							child.css ({
+								"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+								"transform-origin": originX + "% " + originY + "%",
+								"transition": transition
+							});
+
+							$('[data-twin=' + child.attr("data-twin") + ']').css ({
+								"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+								"transform-origin": originX + "% " + originY + "%",
+								"transition": transition
+							});
+						});
+					}, timer);
+				}
+
+				// It's shorter than container
+				if (child.width () <= parent.width ()) {
+					originX = posX = 0;
+					scaleX = 1;
+				}
+				if (child.height () <= parent.height ()) {
+					originY = posY = 0;
+					scaleY = 1;
+				}
+
+				// Make sure the other end not moving
+				if (scrollHorizontal) {
+					posY = 0;
+					scaleY = 1;
+				}
+				if (scrollVertical) {
+					posX = 0;
+					scaleX = 1;
+				}
+
+				transition = "";
+
+				child.css ({
+					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+					"transform-origin": originX + "% " + originY + "%",
+					"transition": transition
+				});
+				if (parent.attr ("data-scroll-id") != undefined) {
+					$("[data-scroll-id='" + parent.attr ("data-scroll-id") + "'] > .scroll").css ({
+						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+						"transform-origin": originX + "% " + originY + "%",
+						"transition": transition
+					});
+				}
+
+				event.preventDefault();
+			});
 
 			// Assign touch event
 			elem.swipe({
 				swipeStatus:function(event, phase, direction, distance, duration, fingers, fingerdata) {
-					var parent = this.parent ();
+					var parent = $(this),
+						child = $(this).children ();
 
 					if (canBeMoved) {
 						canBeMoved = false;
 						// Map
-						matrix = this.css ("transform").split (", ");
+						matrix = child.css ("transform").split (", ");
 						mapX = matrix[4];
 						mapY = matrix[5].split (")");
 						mapY = mapY[0];
@@ -90,6 +237,17 @@
 
 						// Count the viewable boundry
 						if (rubber) {
+							if ((posX + child.width ()) <= parent.width ()) {
+								posX = parent.width () - child.width ();
+								originX = 100;
+								scaleX = 1 + (deltaX / parent.width ());
+							}
+							if ((posY + child.height ()) <= parent.height ()) {
+								posY = parent.height () - child.height ();
+								originY = 100;
+								scaleY = 1 + (deltaY / parent.height ());
+							}
+
 							if (posX >= 0) {
 								originX = posX = 0;
 								scaleX = 1 - (deltaX / parent.width ())
@@ -98,28 +256,25 @@
 								originY = posY = 0;
 								scaleY = 1 - (deltaY / parent.height ())
 							}
-							if ((posX + this.width ()) <= parent.width ()) {
-								posX = parent.width () - this.width ();
-								originX = 100;
-								scaleX = 1 + (deltaX / parent.width ());
-							}
-							if ((posY + this.height ()) <= parent.height ()) {
-								posY = parent.height () - this.height ();
-								originY = 100;
-								scaleY = 1 + (deltaY / parent.height ());
-							}
-							if (this.width () <= parent.width ()) {
+
+							if (child.width () <= parent.width ()) {
 								originX = posX = 0;
 								scaleX = 1;
 							}
-							if (this.height () <= parent.height ()) {
+							if (child.height () <= parent.height ()) {
 								originY = posY = 0;
 								scaleY = 1;
 							}
 						}
 
-						if (scrollHorizontal) { posY = 0; scaleY = 1; }
-						if (scrollVertical) { posX = 0; scaleX = 1; }
+						if (scrollHorizontal) {
+							posY = 0;
+							scaleY = 1;
+						}
+						if (scrollVertical) {
+							posX = 0;
+							scaleX = 1;
+						}
 						transition = "all 0s linear";
 					} else if (phase === 'end' || phase === 'cancel') {
 						// Count the the move speed for slow down animation
@@ -132,149 +287,56 @@
 							deltaY *= accelerator;
 							posX = mapX - deltaX;
 							posY = mapY - deltaY;
+
 							if (scrollHorizontal)
 								posY = 0;
 							if (scrollVertical)
 								posX = 0;
+
 							transition = "all 0.25s cubic-bezier(0, 0, " + velocity / 2 + ", 1)";
 						} else {
-							transition = "all 0.15s cubic-bezier(0, 0, 0.5, 1)";
+							transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
 						}
+
 						// Count the viewable boundry
+						if ((posX + child.width ()) <= parent.width ())
+							posX = parent.width () - child.width ();
+						if ((posY + child.height ()) <= parent.height ())
+							posY = parent.height () - child.height ();
+
 						if (posX >= 0)
 							posX = 0;
 						if (posY >= 0)
 							posY = 0;
-						if ((posX + this.width ()) <= parent.width ())
-							posX = parent.width () - this.width ();
-						if ((posY + this.height ()) <= parent.height ())
-							posY = parent.height () - this.height ();
-						if (this.width () <= parent.width ())
+
+						if (child.width () <= parent.width ())
 							posX = 0;
-						if (this.height () <= parent.height ())
+						if (child.height () <= parent.height ())
 							posY = 0;
+
 						scaleX = scaleY = 1;
 						canBeMoved = true;
+
 						// Make a status no element can be tap
 						ONSWIPE = false;
 					}
 
-					this.css ({
+					child.css ({
 						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
 						"transform-origin": originX + "% " + originY + "%",
 						"transition": transition
 					});
 
-					$('[data-twin=' + this.attr("data-twin") + ']').css ({
+					$('[data-twin=' + child.attr("data-twin") + ']').css ({
 						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
 						"transform-origin": originX + "% " + originY + "%",
 						"transition": transition
 					});
-
-					console.log ()
 				},
 				triggerOnTouchLeave:true,
 				excludedElements:''
 			});
 		});
-
-		// Currently disable - Mouse Scroll
-		/*
-		function mouseScroll (event) {
-			var parent = this.parent ();
-
-			event.preventDefault();
-
-			if (canBeMoved) {
-				canBeMoved = false;
-				// Map
-				matrix = $(scrollArea).css ("transform").split (", ");
-				mapX = matrix[4];
-				mapY = matrix[5].split (")");
-				mapY = mapY[0];
-			}
-
-			// Count movement delta
-			if (event.type === "DOMMouseScroll") {
-				deltaX = 0;
-				deltaY = event.originalEvent.detail * 10;
-			} else {
-				deltaX = event.originalEvent.wheelDeltaX;
-				deltaY = event.originalEvent.wheelDeltaY;
-			}
-
-			// Constrain movement
-			posX = (mapX -= (deltaX * -1) / 4);
-			posY = (mapY -= (deltaY * -1) / 4);
-
-			scrollPosX -= (deltaX * -1) / 16;
-			scrollPosY -= (deltaY * -1) / 16;
-
-			if (rubber) {
-				if (posX > 0) { originX = posX = 0; scaleX = 1 + (scrollPosX / parent.width ()); }
-				if (posY > 0) { originY = posY = 0; scaleY = 1 + (scrollPosY / parent.height ()); }
-				if ((posX + $(scrollArea).width ()) < parent.width ()) { posX = parent.width () - $(scrollArea).width (); originX = 100; scaleX = 1 - (scrollPosX / parent.width ()); }
-				if ((posY + $(scrollArea).height ()) < parent.height ()) { posY = parent.height () - $(scrollArea).height (); originY = 100; scaleY = 1 - (scrollPosY / parent.height ()); }
-				if ($(scrollArea).width () < parent.width ()) { originX = posX = 0; scaleX = 1 }
-				if ($(scrollArea).height () < parent.height ()) { originY = posY = 0; scaleY = 1 }
-			}
-
-			// Shouldn't be "dower"
-			if (scrollHorizontal) { posY = 0; scaleY = 1; }
-			if (scrollVertical) { posX = 0; scaleX = 1; }
-
-			transition = "all 0s linear";
-
-			$(scrollArea).css ({
-				"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-				"transform-origin": originX + "% " + originY + "%",
-				"transition": transition
-			});
-			if ($(scrollArea).parent ().attr ("data-scroll-id") != undefined) {
-				$("[data-scroll-id='" + $(scrollArea).parent ().attr ("data-scroll-id") + "'] > .scroll").css ({
-					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-					"transform-origin": originX + "% " + originY + "%",
-					"transition": transition
-				});
-			}
-
-			// TODO: Detect over scroll
-			clearTimeout(timer);
-			timer = setTimeout(function() {
-				if (!canBeMoved) {
-					// Count the viewable boundry
-					if (posX >= 0) posX = 0;
-					if (posY >= 0) posY = 0;
-					if ((posX + $(scrollArea).width ()) <= parent.width ()) posX = parent.width () - $(scrollArea).width ();
-					if ((posY + $(scrollArea).height ()) <= parent.height ()) posY = parent.height () - $(scrollArea).height ();
-					if ($(scrollArea).width () <= parent.width ()) posX = 0;
-					if ($(scrollArea).height () <= parent.height ()) posY = 0;
-
-					scrollPosX = scrollPosY = 0;
-					scaleX = scaleY = 1;
-					transition = "";
-					canBeMoved = true;
-
-					$(scrollArea).css ({
-						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-						"transform-origin": originX + "% " + originY + "%",
-						"transition": transition
-					});
-					if ($(scrollArea).parent ().attr ("data-scroll-id") != undefined) {
-						$("[data-scroll-id='" + $(scrollArea).parent ().attr ("data-scroll-id") + "'] > .scroll").css ({
-							"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-							"transform-origin": originX + "% " + originY + "%",
-							"transition": transition
-						});
-					}
-
-					stopScroll = 0;
-
-					clearTimeout(timer);
-				}
-			}, 16);
-		}
-		*/
 
 	}
 }(jQuery, window, document));

@@ -10,7 +10,8 @@
 				canBeMoved: true,
 				rubber: false,
 				scrollVertical: true,
-				scrollHorizontal: false
+				scrollHorizontal: false,
+				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {}
 			},
 			settings = $.extend({}, defaults, options);
 
@@ -19,7 +20,8 @@
 			var canBeMoved = settings.canBeMoved,
 				rubber = settings.rubber,
 				scrollVertical = settings.scrollVertical,
-				scrollHorizontal = settings.scrollHorizontal;
+				scrollHorizontal = settings.scrollHorizontal,
+				onScroll = settings.onScroll;
 			// Determine the map first position
 			var matrix = 0,
 				mapX = 0,
@@ -43,11 +45,9 @@
 				transition = "";
 			// For stopping too much scroll
 			var stopScroll = 0;
-			// Used for detecting mousewheel stop
-			var timer;
 			// Current item
-			var elem = $(this).parent ()
-				timer = null;
+			var elem = $(this).parent (),
+				timer = 256;
 
 			// Assign transform CSS
 			elem.children ().css ("transform", "translate3d(0,0,0)");
@@ -62,8 +62,6 @@
 				mapX = matrix[4];
 				mapY = matrix[5].split (")");
 				mapY = mapY[0];
-
-				// console.log(event, event.deltaX, event.deltaY, event.deltaFactor);
 
 				// Count movement delta
 				deltaX = event.deltaX;
@@ -82,26 +80,25 @@
 					if ((posX + child.width ()) <= parent.width ()) {
 						posX = parent.width () - child.width ();
 						originX = 100;
-						scaleX = 1 - (deltaX / parent.width ());
+						scaleX = 1 + Math.abs(deltaX / parent.width ());
 					}
 					if ((posY + child.height ()) <= parent.height ()) {
 						posY = parent.height () - child.height ();
 						originY = 100;
-						scaleY = 1 - (deltaY / parent.height ());
+						scaleY = 1 + Math.abs(deltaY / parent.height ());
 					}
 
 					// It's on top
 					if (posX >= 0) {
 						originX = posX = 0;
-						scaleX = 1 + (deltaX / parent.width ());
+						scaleX = 1 + Math.abs(deltaX / parent.width ());
 					}
 					if (posY >= 0) {
 						originY = posY = 0;
-						scaleY = 1 + (deltaY / parent.height ());
+						scaleY = 1 + Math.abs(deltaY / parent.height ());
 					}
 				} else {
-					var timer = 256,
-						_transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+					var _transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
 					// TODO: It's on bottom
 					if ((posX + child.width ()) <= (parent.width () - (parent.width () / 2))) {
@@ -122,41 +119,6 @@
 						transition = _transition;
 						posY = (parent.height () / 2) - deltaX;
 					}
-
-					// Save the current element
-					window.tempparent = parent;
-
-					// Prevent element to over scrolled - should be on mouse up
-					clearTimeout (window.temptimer);
-					window.temptimer = setTimeout (function () {
-						tempparent.each(function (){
-							// It's on bottom
-							if ((posX + child.width ()) <= parent.width ())
-								posX = parent.width () - child.width ();
-							if ((posY + child.height ()) <= parent.height ())
-								posY = parent.height () - child.height ();
-
-							// It's on top
-							if (posX >= 0)
-								posX = 0;
-							if (posY >= 0)
-								posY = 0;
-
-							transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-
-							child.css ({
-								"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-								"transform-origin": originX + "% " + originY + "%",
-								"transition": transition
-							});
-
-							$('[data-twin=' + child.attr("data-twin") + ']').css ({
-								"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-								"transform-origin": originX + "% " + originY + "%",
-								"transition": transition
-							});
-						});
-					}, timer);
 				}
 
 				// It's shorter than container
@@ -186,13 +148,46 @@
 					"transform-origin": originX + "% " + originY + "%",
 					"transition": transition
 				});
-				if (parent.attr ("data-scroll-id") != undefined) {
-					$("[data-scroll-id='" + parent.attr ("data-scroll-id") + "'] > .scroll").css ({
-						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-						"transform-origin": originX + "% " + originY + "%",
-						"transition": transition
+				$('[data-twin=' + child.attr("data-twin") + ']').css ({
+					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+					"transform-origin": originX + "% " + originY + "%",
+					"transition": transition
+				});
+
+				// Save the current element
+				window.tempparent = parent;
+
+				// Prevent element to over scrolled - should be on mouse up
+				setTimeout (function () {
+					tempparent.each(function (){
+						// It's on bottom
+						if ((posX + child.width ()) <= parent.width ())
+							posX = parent.width () - child.width ();
+						if ((posY + child.height ()) <= parent.height ())
+							posY = parent.height () - child.height ();
+
+						// It's on top
+						if (posX >= 0)
+							posX = 0;
+						if (posY >= 0)
+							posY = 0;
+
+						transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+
+						child.css ({
+							"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+							"transform-origin": originX + "% " + originY + "%",
+							"transition": transition
+						});
+						$('[data-twin=' + child.attr("data-twin") + ']').css ({
+							"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+							"transform-origin": originX + "% " + originY + "%",
+							"transition": transition
+						});
 					});
-				}
+				}, timer);
+
+				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
 				event.preventDefault();
 			});
@@ -332,6 +327,8 @@
 						"transform-origin": originX + "% " + originY + "%",
 						"transition": transition
 					});
+
+					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 				},
 				triggerOnTouchLeave:true,
 				excludedElements:''

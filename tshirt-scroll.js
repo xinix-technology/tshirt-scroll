@@ -7,21 +7,29 @@
 	$.fn.scroll = function (options) {
 		// Default Settings
 		var defaults = {
-				canBeMoved: true,
 				rubber: false,
 				scrollVertical: true,
 				scrollHorizontal: false,
-				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {}
+				allowSmaller: false,
+				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
+				onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
+				onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
+				onReachLeft: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
+				onReachRight: function (posX, posY, scaleX, scaleY, originX, originY, transition) {}
 			},
 			settings = $.extend({}, defaults, options);
 
 		this.each(function () {
 			// Get params
-			var canBeMoved = settings.canBeMoved,
-				rubber = settings.rubber,
+			var rubber = settings.rubber,
 				scrollVertical = settings.scrollVertical,
 				scrollHorizontal = settings.scrollHorizontal,
-				onScroll = settings.onScroll;
+				allowSmaller = settings.allowSmaller,
+				onScroll = settings.onScroll,
+				onReachTop = settings.onReachTop,
+				onReachBottom = settings.onReachBottom,
+				onReachLeft = settings.onReachLeft,
+				onReachRight = settings.onReachRight;
 			// Determine the map first position
 			var matrix = 0,
 				mapX = 0,
@@ -44,7 +52,8 @@
 				velocity = 0,
 				transition = "";
 			// For stopping too much scroll
-			var stopScroll = 0;
+			var canBeMoved = true,
+				stopScroll = 0;
 			// Current item
 			var elem = $(this).parent (),
 				timer = 256;
@@ -74,74 +83,90 @@
 				scrollPosX -= (deltaX * 1);
 				scrollPosY -= (deltaY * -1);
 
+				transition = "";
+
 				// Count the viewable boundry
 				if (rubber) {
-					// It's on bottom
+					// It's on right
 					if ((posX + child.width ()) <= parent.width ()) {
 						posX = parent.width () - child.width ();
 						originX = 100;
 						scaleX = 1 + Math.abs(deltaX / parent.width ());
+						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
+
+					// It's on bottom
 					if ((posY + child.height ()) <= parent.height ()) {
 						posY = parent.height () - child.height ();
 						originY = 100;
 						scaleY = 1 + Math.abs(deltaY / parent.height ());
+						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
-					// It's on top
+					// It's on left
 					if (posX >= 0) {
 						originX = posX = 0;
 						scaleX = 1 + Math.abs(deltaX / parent.width ());
-					}
-					if (posY >= 0) {
-						originY = posY = 0;
-						scaleY = 1 + Math.abs(deltaY / parent.height ());
-					}
-				} else {
-					var _transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-
-					// TODO: It's on bottom
-					if ((posX + child.width ()) <= (parent.width () - (parent.width () / 2))) {
-						transition = _transition;
-						posX = (parent.width () - (parent.width () / 2)) - child.width () + deltaX;
-					}
-					if ((posY + child.height ()) <= (parent.height () - (parent.height () / 2))) {
-						transition = _transition;
-						posY = (parent.height () - (parent.height () / 2)) - child.height () + deltaY;
+						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on top
-					if (posX >= parent.width () / 2) {
-						transition = _transition;
-						posX = (parent.width () / 2) - deltaX;
+					if (posY >= 0) {
+						originY = posY = 0;
+						scaleY = 1 + Math.abs(deltaY / parent.height ());
+						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
-					if (posY >= parent.height () / 2) {
-						transition = _transition;
-						posY = (parent.height () / 2) - deltaX;
+				} else {
+					// It's on right
+					if ((posX + child.width ()) <= parent.width ()) {
+						posX -= (1 / (posX * 100));
+						if ((posX + child.width ()) <= -(parent.width () * 2) ) posX = -(parent.width () * 2) - child.width ();
+						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
+					}
+
+					// It's on bottom
+					if ((posY + child.height ()) <= parent.height ()) {
+						posY -= (1 / (posY * 100));
+						if ((posY + child.height ()) <= -(parent.height () * 2) ) posY = -(parent.height () * 2) - child.height ();
+						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+					}
+
+					// It's on left
+					if (posX >= 0) {
+						posX += (1 / (posX * 100));
+						if (posX >= parent.width ()) posX = parent.width ();
+						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
+					}
+
+					// It's on top
+					if (posY >= 0) {
+						posY += (1 / (posY * 100));
+						if (posY >= parent.height ()) posY = parent.height ();
+						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 				}
 
 				// It's shorter than container
-				if (child.width () <= parent.width ()) {
-					originX = posX = 0;
-					scaleX = 1;
-				}
-				if (child.height () <= parent.height ()) {
-					originY = posY = 0;
-					scaleY = 1;
+				if (!allowSmaller) {
+					if (child.width () <= parent.width ()) {
+						originX = posX = 0;
+						scaleX = 1;
+					}
+					if (child.height () <= parent.height ()) {
+						originY = posY = 0;
+						scaleY = 1;
+					}
 				}
 
 				// Make sure the other end not moving
-				if (scrollHorizontal) {
+				if (scrollHorizontal && !scrollVertical) {
 					posY = 0;
 					scaleY = 1;
 				}
-				if (scrollVertical) {
+				if (!scrollHorizontal && scrollVertical) {
 					posX = 0;
 					scaleX = 1;
 				}
-
-				transition = "";
 
 				child.css ({
 					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
@@ -251,42 +276,28 @@
 								originY = posY = 0;
 								scaleY = 1 - (deltaY / parent.height ())
 							}
-
-							if (child.width () <= parent.width ()) {
-								originX = posX = 0;
-								scaleX = 1;
-							}
-							if (child.height () <= parent.height ()) {
-								originY = posY = 0;
-								scaleY = 1;
-							}
 						}
 
-						if (scrollHorizontal) {
-							posY = 0;
-							scaleY = 1;
-						}
-						if (scrollVertical) {
-							posX = 0;
-							scaleX = 1;
-						}
 						transition = "all 0s linear";
 					} else if (phase === 'end' || phase === 'cancel') {
 						// Count the the move speed for slow down animation
-						// TODO: Rethink about this
 						accelerator = 0.25;
 						velocity = duration / distance;
-						if ( velocity < 2) {
+						if (velocity < 2) {
 							accelerator = 4 - velocity;
 							deltaX *= accelerator;
 							deltaY *= accelerator;
 							posX = mapX - deltaX;
 							posY = mapY - deltaY;
 
-							if (scrollHorizontal)
+							if (scrollHorizontal && !scrollVertical) {
 								posY = 0;
-							if (scrollVertical)
+								scaleY = 1;
+							}
+							if (!scrollHorizontal && scrollVertical) {
 								posX = 0;
+								scaleX = 1;
+							}
 
 							transition = "all 0.25s cubic-bezier(0, 0, " + velocity / 2 + ", 1)";
 						} else {
@@ -316,6 +327,27 @@
 						ONSWIPE = false;
 					}
 
+					// It's shorter than container
+					if (!allowSmaller) {
+						if (child.width () <= parent.width ()) {
+							originX = posX = 0;
+							scaleX = 1;
+						}
+						if (child.height () <= parent.height ()) {
+							originY = posY = 0;
+							scaleY = 1;
+						}
+					}
+
+					if (scrollHorizontal && !scrollVertical) {
+						posY = 0;
+						scaleY = 1;
+					}
+					if (!scrollHorizontal && scrollVertical) {
+						posX = 0;
+						scaleX = 1;
+					}
+
 					child.css ({
 						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
 						"transform-origin": originX + "% " + originY + "%",
@@ -329,6 +361,8 @@
 					});
 
 					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
+
+					event.preventDefault();
 				},
 				triggerOnTouchLeave:true,
 				excludedElements:''

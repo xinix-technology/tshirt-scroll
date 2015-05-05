@@ -362,7 +362,7 @@
 
 					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
-					event.preventDefault();
+					// event.preventDefault();
 				},
 				triggerOnTouchLeave:true,
 				excludedElements:''

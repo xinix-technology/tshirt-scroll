@@ -152,7 +152,7 @@ $(".scrollWrapperHorizontal > div").scroll ({
 	<h2>Twin Scroll, because we can</h2>
 	<p>Apply attributes "data-twin" to your scroll element, it will detect the same value as their twin</p>
 	<div class="example">
-		<div class="scrollWrapper" style="width:50%; float:left">
+		<div class="scrollWrapperRubber" style="width:50%; float:left">
 			<div data-twin="twin">
 				<h1>THE UGLY DUCKLING</h1>
 				<p>Once upon a time, there lived a mother duck with six cute yellow ducklings and one strange looking gray duckling.</p>
@@ -167,7 +167,7 @@ $(".scrollWrapperHorizontal > div").scroll ({
 				<p>The end</p>
 			</div>
 		</div>
-		<div class="scrollWrapper" style="width:50%; float:left">
+		<div class="scrollWrapperRubber" style="width:50%; float:left">
 			<div data-twin="twin">
 				<h1>THE UGLY DUCKLING</h1>
 				<p>Once upon a time, there lived a mother duck with six cute yellow ducklings and one strange looking gray duckling.</p>
@@ -226,7 +226,7 @@ $(".scrollWrapperBothSmaller > div").scroll ({
 	</div>
 
 	<h2>Bonus Callback</h2>
-	<p>Sometime we just need someone to call us back, so we made this several callback.</p>
+	<p>Sometime we just need someone to call us back, so we made this several callback. Open your Javascript console, and observe the first example.</p>
 	<pre>
 $(element).scroll ({
 	onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
@@ -251,7 +251,23 @@ $(element).scroll ({
 
 <script type="text/javascript">
 	$(function () {
-		$(".scrollWrapper > div").scroll ();
+		$(".scrollWrapper > div").scroll ({
+			onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
+				console.log ("On Scroll", posX, posY, scaleX, scaleY, originX, originY, transition);
+			},
+			onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
+				console.log ("Reach Top", posX, posY, scaleX, scaleY, originX, originY, transition);
+			},
+			onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
+				console.log ("Reach Bottom", posX, posY, scaleX, scaleY, originX, originY, transition);
+			},
+			onReachLeft: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
+				console.log ("Reach Left", posX, posY, scaleX, scaleY, originX, originY, transition);
+			},
+			onReachRight: function (posX, posY, scaleX, scaleY, originX, originY, transition) {
+				console.log ("Reach Right", posX, posY, scaleX, scaleY, originX, originY, transition);
+			}
+		});
 		$(".scrollWrapperRubber > div").scroll ({
 			rubber: true
 		});

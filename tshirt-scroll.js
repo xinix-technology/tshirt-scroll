@@ -41,8 +41,6 @@
 				deltaY = 0,
 				posX = 0,
 				posY = 0,
-				scrollPosX = 0,
-				scrollPosY = 0,
 				originX = 0,
 				originY = 0,
 				scaleX = 1,
@@ -51,9 +49,6 @@
 			var accelerator = 0.25,
 				velocity = 0,
 				transition = "";
-			// For stopping too much scroll
-			var canBeMoved = true,
-				stopScroll = 0;
 			// Current item
 			var elem = $(this).parent (),
 				timer = 256;
@@ -68,20 +63,20 @@
 
 				// Map
 				matrix = child.css ("transform").split (", ");
-				mapX = matrix[4];
+				mapX = parseInt(matrix[4]);
 				mapY = matrix[5].split (")");
-				mapY = mapY[0];
+				mapY = parseInt(mapY[0]);
 
 				// Count movement delta
-				deltaX = event.deltaX;
-				deltaY = event.deltaY;
+				deltaX = parseInt(event.deltaX);
+				deltaY = parseInt(event.deltaY);
+
+				if (deltaX === 0) deltaX = 1;
+				if (deltaY === 0) deltaY = 1;
 
 				// Constrain movement
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
-
-				scrollPosX -= (deltaX * 1);
-				scrollPosY -= (deltaY * -1);
 
 				transition = "";
 
@@ -118,29 +113,29 @@
 					}
 				} else {
 					// It's on right
-					if ((posX + child.width ()) <= parent.width ()) {
+					if ((posX + child.width ()) <= parent.width () && scrollHorizontal) {
 						posX -= (1 / (posX * 100));
 						if ((posX + child.width ()) <= -(parent.width () * 2) ) posX = -(parent.width () * 2) - child.width ();
 						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on bottom
-					if ((posY + child.height ()) <= parent.height ()) {
+					if ((posY + child.height ()) <= parent.height () && scrollVertical) {
 						posY -= (1 / (posY * 100));
 						if ((posY + child.height ()) <= -(parent.height () * 2) ) posY = -(parent.height () * 2) - child.height ();
 						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on left
-					if (posX >= 0) {
-						posX += (1 / (posX * 100));
+					if (posX >= 0 && scrollHorizontal) {
+						posX += (1 / (deltaX * 100));
 						if (posX >= parent.width ()) posX = parent.width ();
 						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on top
-					if (posY >= 0) {
-						posY += (1 / (posY * 100));
+					if (posY >= 0 && scrollVertical) {
+						posY += (1 / (deltaY * 100));
 						if (posY >= parent.height ()) posY = parent.height ();
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
@@ -223,33 +218,35 @@
 					var parent = $(this),
 						child = $(this).children ();
 
-					if (canBeMoved) {
-						canBeMoved = false;
+					if (phase === "start") {
 						// Map
 						matrix = child.css ("transform").split (", ");
-						mapX = matrix[4];
+						mapX = parseInt(matrix[4]);
 						mapY = matrix[5].split (")");
-						mapY = mapY[0];
+						mapY = parseInt(mapY[0]);
+
 						// Touch
 						if (event.changedTouches === undefined) {
-							firstX = event.pageX;
-							firstY = event.pageY;
+							firstX = parseInt(event.pageX);
+							firstY = parseInt(event.pageY);
 						} else {
-							firstX = event.changedTouches[0].pageX;
-							firstY = event.changedTouches[0].pageY;
+							firstX = parseInt(event.changedTouches[0].pageX);
+							firstY = parseInt(event.changedTouches[0].pageY);
 						}
-					}
 
-					if (phase === 'move') {
+						// Constrain movement
+						posX = mapX;
+						posY = mapY;
+					} else if (phase === 'move') {
 						// Make a status no element can't be tap
 						ONSWIPE = true;
 						// Count movement delta
 						if (event.changedTouches === undefined) {
-							deltaX = firstX - event.pageX;
-							deltaY = firstY - event.pageY;
+							deltaX = firstX - parseInt(event.pageX);
+							deltaY = firstY - parseInt(event.pageY);
 						} else {
-							deltaX = firstX - event.changedTouches[0].pageX;
-							deltaY = firstY - event.changedTouches[0].pageY;
+							deltaX = firstX - parseInt(event.changedTouches[0].pageX);
+							deltaY = firstY - parseInt(event.changedTouches[0].pageY);
 						}
 						// Constrain movement
 						posX = mapX - deltaX;
@@ -277,6 +274,12 @@
 								scaleY = 1 - (deltaY / parent.height ())
 							}
 						}
+
+						// Calling the callbacks
+						if ((posX + child.width ()) <= parent.width ())  	onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if ((posY + child.height ()) <= parent.height ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if (posX >= 0)   									onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if (posY >= 0)  									onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
 
 						transition = "all 0s linear";
 					} else if (phase === 'end' || phase === 'cancel') {
@@ -321,7 +324,6 @@
 							posY = 0;
 
 						scaleX = scaleY = 1;
-						canBeMoved = true;
 
 						// Make a status no element can be tap
 						ONSWIPE = false;
@@ -361,8 +363,6 @@
 					});
 
 					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
-
-					// event.preventDefault();
 				},
 				triggerOnTouchLeave:true,
 				excludedElements:''

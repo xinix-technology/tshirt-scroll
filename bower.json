@@ -16,7 +16,7 @@
     "touch",
     "scroll"
   ],
-  "license": "Apache",
+  "license": "MIT",
   "ignore": [
     "**/.*",
     "node_modules",

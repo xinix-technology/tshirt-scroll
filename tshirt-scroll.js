@@ -226,7 +226,7 @@
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
 
-				transition = "";
+				transition = "all 0s linear";
 
 				// Count the viewable boundry
 				if (rubber) {

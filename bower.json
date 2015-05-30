@@ -27,8 +27,8 @@
   ],
   "dependencies": {
     "jquery": "~2.1.1",
-    "jquery-touchswipe": "~1.6.8",
     "jquery-mousewheel": "~3.1.12",
-    "lato": "~0.2.2"
+    "lato": "~0.2.2",
+    "jquery-hammerjs": "~1.1.3"
   }
 }

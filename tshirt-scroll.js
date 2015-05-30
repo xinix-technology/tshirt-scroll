@@ -46,15 +46,163 @@
 				scaleX = 1,
 				scaleY = 1;
 			// To be used to slow down animation
-			var accelerator = 0.25,
+			var acceleratorX = 0,
+				acceleratorY = 0,
 				velocity = 0,
 				transition = "";
 			// Current item
 			var elem = $(this).parent (),
 				timer = 256;
+			// Timestamp
+			var timestamp;
 
 			// Assign transform CSS
 			elem.children ().css ("transform", "translate3d(0,0,0)");
+
+			// Assign touch event
+			elem.hammer().on("dragstart drag dragend", function(event) {
+				var parent = $(this),
+					child = $(this).children ();
+
+				if (event.type === "dragstart") {
+					// Map
+					matrix = child.css ("transform").split (", ");
+					mapX = parseInt(matrix[4]);
+					mapY = matrix[5].split (")");
+					mapY = parseInt(mapY[0]);
+
+					// Touch
+					firstX = event.gesture.center.pageX;
+					firstY = event.gesture.center.pageY;
+
+					// Constrain movement
+					posX = mapX;
+					posY = mapY;
+				} else if (event.type === 'drag') {
+					// Make a status no element can't be tap
+					ONSWIPE = true;
+					// Count movement delta
+					deltaX = -event.gesture.deltaX;
+					deltaY = -event.gesture.deltaY;
+					// Constrain movement
+					posX = mapX - deltaX;
+					posY = mapY - deltaY;
+
+					// Count the viewable boundry
+					if (rubber) {
+						if ((posX + child.width ()) <= parent.width ()) {
+							posX = parent.width () - child.width ();
+							originX = 100;
+							scaleX = 1 + (deltaX / parent.width ());
+						}
+						if ((posY + child.height ()) <= parent.height ()) {
+							posY = parent.height () - child.height ();
+							originY = 100;
+							scaleY = 1 + (deltaY / parent.height ());
+						}
+
+						if (posX >= 0) {
+							originX = posX = 0;
+							scaleX = 1 - (deltaX / parent.width ())
+						}
+						if (posY >= 0) {
+							originY = posY = 0;
+							scaleY = 1 - (deltaY / parent.height ())
+						}
+					}
+
+					// Calling the callbacks
+					if ((posX + child.width ()) <= parent.width ())  	onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
+					if ((posY + child.height ()) <= parent.height ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+					if (posX >= 0)   									onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
+					if (posY >= 0)  									onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
+
+					// Get the last acceleration
+					acceleratorX = event.gesture.velocityX;
+					acceleratorY = event.gesture.velocityY;
+
+					transition = "all 0s linear";
+					timestamp = Math.round(+new Date()/300);
+				} else if (event.type === 'dragend') {
+					// Count the the move speed for slow down animation
+					// velocity = duration / distance;
+					// if (velocity < 2) {
+						if (timestamp === Math.round(+new Date()/300)) {
+							posX = mapX - (deltaX * (50 * acceleratorX));
+							posY = mapY - (deltaY * (50 * acceleratorY));
+						}
+
+						if (scrollHorizontal && !scrollVertical) {
+							posY = 0;
+							scaleY = 1;
+						}
+						if (!scrollHorizontal && scrollVertical) {
+							posX = 0;
+							scaleX = 1;
+						}
+
+					// 	transition = "all 0.25s cubic-bezier(0, 0, " + velocity / 2 + ", 1)";
+					// } else {
+						transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+					// }
+
+					// Count the viewable boundry
+					if ((posX + child.width ()) <= parent.width ())
+						posX = parent.width () - child.width ();
+					if ((posY + child.height ()) <= parent.height ())
+						posY = parent.height () - child.height ();
+
+					if (posX >= 0)
+						posX = 0;
+					if (posY >= 0)
+						posY = 0;
+
+					if (child.width () <= parent.width ())
+						posX = 0;
+					if (child.height () <= parent.height ())
+						posY = 0;
+
+					scaleX = scaleY = 1;
+
+					// Make a status no element can be tap
+					ONSWIPE = false;
+				}
+
+				// It's shorter than container
+				if (!allowSmaller) {
+					if (child.width () <= parent.width ()) {
+						originX = posX = 0;
+						scaleX = 1;
+					}
+					if (child.height () <= parent.height ()) {
+						originY = posY = 0;
+						scaleY = 1;
+					}
+				}
+
+				if (scrollHorizontal && !scrollVertical) {
+					posY = 0;
+					scaleY = 1;
+				}
+				if (!scrollHorizontal && scrollVertical) {
+					posX = 0;
+					scaleX = 1;
+				}
+
+				child.css ({
+					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+					"transform-origin": originX + "% " + originY + "%",
+					"transition": transition
+				});
+
+				$('[data-twin=' + child.attr("data-twin") + ']').css ({
+					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+					"transform-origin": originX + "% " + originY + "%",
+					"transition": transition
+				});
+
+				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
+			});
 
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
@@ -210,162 +358,6 @@
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
 				event.preventDefault();
-			});
-
-			// Assign touch event
-			elem.swipe({
-				swipeStatus:function(event, phase, direction, distance, duration, fingers, fingerdata) {
-					var parent = $(this),
-						child = $(this).children ();
-
-					if (phase === "start") {
-						// Map
-						matrix = child.css ("transform").split (", ");
-						mapX = parseInt(matrix[4]);
-						mapY = matrix[5].split (")");
-						mapY = parseInt(mapY[0]);
-
-						// Touch
-						if (event.changedTouches === undefined) {
-							firstX = parseInt(event.pageX);
-							firstY = parseInt(event.pageY);
-						} else {
-							firstX = parseInt(event.changedTouches[0].pageX);
-							firstY = parseInt(event.changedTouches[0].pageY);
-						}
-
-						// Constrain movement
-						posX = mapX;
-						posY = mapY;
-					} else if (phase === 'move') {
-						// Make a status no element can't be tap
-						ONSWIPE = true;
-						// Count movement delta
-						if (event.changedTouches === undefined) {
-							deltaX = firstX - parseInt(event.pageX);
-							deltaY = firstY - parseInt(event.pageY);
-						} else {
-							deltaX = firstX - parseInt(event.changedTouches[0].pageX);
-							deltaY = firstY - parseInt(event.changedTouches[0].pageY);
-						}
-						// Constrain movement
-						posX = mapX - deltaX;
-						posY = mapY - deltaY;
-
-						// Count the viewable boundry
-						if (rubber) {
-							if ((posX + child.width ()) <= parent.width ()) {
-								posX = parent.width () - child.width ();
-								originX = 100;
-								scaleX = 1 + (deltaX / parent.width ());
-							}
-							if ((posY + child.height ()) <= parent.height ()) {
-								posY = parent.height () - child.height ();
-								originY = 100;
-								scaleY = 1 + (deltaY / parent.height ());
-							}
-
-							if (posX >= 0) {
-								originX = posX = 0;
-								scaleX = 1 - (deltaX / parent.width ())
-							}
-							if (posY >= 0) {
-								originY = posY = 0;
-								scaleY = 1 - (deltaY / parent.height ())
-							}
-						}
-
-						// Calling the callbacks
-						if ((posX + child.width ()) <= parent.width ())  	onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if ((posY + child.height ()) <= parent.height ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if (posX >= 0)   									onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if (posY >= 0)  									onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
-
-						transition = "all 0s linear";
-					} else if (phase === 'end' || phase === 'cancel') {
-						// Count the the move speed for slow down animation
-						accelerator = 0.25;
-						velocity = duration / distance;
-						if (velocity < 2) {
-							accelerator = 4 - velocity;
-							deltaX *= accelerator;
-							deltaY *= accelerator;
-							posX = mapX - deltaX;
-							posY = mapY - deltaY;
-
-							if (scrollHorizontal && !scrollVertical) {
-								posY = 0;
-								scaleY = 1;
-							}
-							if (!scrollHorizontal && scrollVertical) {
-								posX = 0;
-								scaleX = 1;
-							}
-
-							transition = "all 0.25s cubic-bezier(0, 0, " + velocity / 2 + ", 1)";
-						} else {
-							transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-						}
-
-						// Count the viewable boundry
-						if ((posX + child.width ()) <= parent.width ())
-							posX = parent.width () - child.width ();
-						if ((posY + child.height ()) <= parent.height ())
-							posY = parent.height () - child.height ();
-
-						if (posX >= 0)
-							posX = 0;
-						if (posY >= 0)
-							posY = 0;
-
-						if (child.width () <= parent.width ())
-							posX = 0;
-						if (child.height () <= parent.height ())
-							posY = 0;
-
-						scaleX = scaleY = 1;
-
-						// Make a status no element can be tap
-						ONSWIPE = false;
-					}
-
-					// It's shorter than container
-					if (!allowSmaller) {
-						if (child.width () <= parent.width ()) {
-							originX = posX = 0;
-							scaleX = 1;
-						}
-						if (child.height () <= parent.height ()) {
-							originY = posY = 0;
-							scaleY = 1;
-						}
-					}
-
-					if (scrollHorizontal && !scrollVertical) {
-						posY = 0;
-						scaleY = 1;
-					}
-					if (!scrollHorizontal && scrollVertical) {
-						posX = 0;
-						scaleX = 1;
-					}
-
-					child.css ({
-						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-						"transform-origin": originX + "% " + originY + "%",
-						"transition": transition
-					});
-
-					$('[data-twin=' + child.attr("data-twin") + ']').css ({
-						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-						"transform-origin": originX + "% " + originY + "%",
-						"transition": transition
-					});
-
-					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
-				},
-				triggerOnTouchLeave:true,
-				excludedElements:''
 			});
 		});
 

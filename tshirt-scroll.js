@@ -48,6 +48,7 @@
 			// To be used to slow down animation
 			var acceleratorX = 0,
 				acceleratorY = 0,
+				accelerator = 0,
 				velocity = 0,
 				transition = "";
 			// Current item
@@ -60,7 +61,7 @@
 			elem.children ().css ("transform", "translate3d(0,0,0)");
 
 			// Assign touch event
-			elem.hammer().on("dragstart drag dragend", function(event) {
+			elem.hammer().on("dragstart drag dragend tap", function(event) {
 				var parent = $(this),
 					child = $(this).children ();
 
@@ -78,7 +79,9 @@
 					// Constrain movement
 					posX = mapX;
 					posY = mapY;
-				} else if (event.type === 'drag') {
+					console.log (posX, posY);
+				}
+				if (event.type === 'drag') {
 					// Make a status no element can't be tap
 					ONSWIPE = true;
 					// Count movement delta
@@ -117,34 +120,40 @@
 					if (posX >= 0)   									onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
 					if (posY >= 0)  									onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
 
-					// Get the last acceleration
+					// Get the last accelerator
 					acceleratorX = event.gesture.velocityX;
 					acceleratorY = event.gesture.velocityY;
+					if (acceleratorX > acceleratorY) accelerator = acceleratorX;
+					else accelerator = acceleratorY;
 
 					transition = "all 0s linear";
-					timestamp = Math.round(+new Date()/300);
-				} else if (event.type === 'dragend') {
+					timestamp = Math.round(+new Date() / 100);
+				}
+				if (event.type === 'dragend') {
 					// Count the the move speed for slow down animation
-					// velocity = duration / distance;
-					// if (velocity < 2) {
-						if (timestamp === Math.round(+new Date()/300)) {
-							posX = mapX - (deltaX * (50 * acceleratorX));
-							posY = mapY - (deltaY * (50 * acceleratorY));
-						}
+					console.log ("---");
+					console.log (accelerator);
+					console.log (posY);
+					if (acceleratorX > 0.1)
+						posX = mapX - (deltaX * (10 * acceleratorX));
+					if (acceleratorY > 0.1)
+						posY = mapY - (deltaY * (10 * acceleratorY));
+					console.log (posY);
 
-						if (scrollHorizontal && !scrollVertical) {
-							posY = 0;
-							scaleY = 1;
-						}
-						if (!scrollHorizontal && scrollVertical) {
-							posX = 0;
-							scaleX = 1;
-						}
+					if (scrollHorizontal && !scrollVertical) {
+						posY = 0;
+						scaleY = 1;
+					}
+					if (!scrollHorizontal && scrollVertical) {
+						posX = 0;
+						scaleX = 1;
+					}
 
-					// 	transition = "all 0.25s cubic-bezier(0, 0, " + velocity / 2 + ", 1)";
-					// } else {
-						transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-					// }
+					accelerator = Math.round (accelerator * 100) / 100;
+					if (accelerator < 1)
+						transition = "all " + accelerator + "s cubic-bezier(0, 0, 0.5, 1)";
+					else
+						transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
 
 					// Count the viewable boundry
 					if ((posX + child.width ()) <= parent.width ())
@@ -166,6 +175,21 @@
 
 					// Make a status no element can be tap
 					ONSWIPE = false;
+				}
+				if (event.type === 'tap') {
+					matrix = child.css ("transform").split (", ");
+					mapX = parseInt(matrix[4]);
+					mapY = matrix[5].split (")");
+					mapY = parseInt(mapY[0]);
+
+					posX = mapX;
+					posY = mapY;
+
+					scaleX = scaleY = 1;
+
+					originX = originY = 0;
+
+					transition = "all 0s cubic-bezier(0, 0, 0.5, 1)";
 				}
 
 				// It's shorter than container
@@ -189,6 +213,10 @@
 					scaleX = 1;
 				}
 
+				posX = Math.round (posX);
+				posY = Math.round (posY);
+				console.log (posX, posY);
+
 				child.css ({
 					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
 					"transform-origin": originX + "% " + originY + "%",
@@ -202,6 +230,10 @@
 				});
 
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
+
+				event.gesture.preventDefault();
+				event.gesture.stopPropagation();
+				return false;
 			});
 
 			// Assign Mouse Scroll
@@ -358,6 +390,8 @@
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
 				event.preventDefault();
+				event.stopPropagation();
+				return false;
 			});
 		});
 

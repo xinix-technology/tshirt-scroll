@@ -225,8 +225,10 @@
 
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
-				event.gesture.preventDefault();
-				event.gesture.stopPropagation();
+				if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
+					event.gesture.preventDefault();
+					event.gesture.stopPropagation();
+				}
 			});
 
 			// Assign Mouse Scroll

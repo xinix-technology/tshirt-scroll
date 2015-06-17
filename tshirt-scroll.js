@@ -256,8 +256,6 @@
 
 				// Count the viewable boundry
 				if (rubber) {
-					console.log (parent, posX, posY, child.height (), parent.height ());
-
 					// It's on right
 					if ((posX + child.width ()) <= parent.width ()) {
 						posX = parent.width () - child.width ();

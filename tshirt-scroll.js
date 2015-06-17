@@ -79,7 +79,6 @@
 					// Constrain movement
 					posX = mapX;
 					posY = mapY;
-					console.log (posX, posY);
 				}
 				if (event.type === 'drag') {
 					// Make a status no element can't be tap
@@ -131,14 +130,10 @@
 				}
 				if (event.type === 'dragend') {
 					// Count the the move speed for slow down animation
-					console.log ("---");
-					console.log (accelerator);
-					console.log (posY);
 					if (acceleratorX > 0.1)
 						posX = mapX - (deltaX * (10 * acceleratorX));
 					if (acceleratorY > 0.1)
 						posY = mapY - (deltaY * (10 * acceleratorY));
-					console.log (posY);
 
 					if (scrollHorizontal && !scrollVertical) {
 						posY = 0;
@@ -215,7 +210,6 @@
 
 				posX = Math.round (posX);
 				posY = Math.round (posY);
-				console.log (posX, posY);
 
 				child.css ({
 					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
@@ -233,7 +227,6 @@
 
 				event.gesture.preventDefault();
 				event.gesture.stopPropagation();
-				return false;
 			});
 
 			// Assign Mouse Scroll
@@ -258,10 +251,13 @@
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
 
+
 				transition = "all 0s linear";
 
 				// Count the viewable boundry
 				if (rubber) {
+					console.log (parent, posX, posY, child.height (), parent.height ());
+
 					// It's on right
 					if ((posX + child.width ()) <= parent.width ()) {
 						posX = parent.width () - child.width ();
@@ -291,6 +287,7 @@
 						scaleY = 1 + Math.abs(deltaY / parent.height ());
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
+
 				} else {
 					// It's on right
 					if ((posX + child.width ()) <= parent.width () && scrollHorizontal) {
@@ -390,8 +387,6 @@
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
 				event.preventDefault();
-				event.stopPropagation();
-				return false;
 			});
 		});
 

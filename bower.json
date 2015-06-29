@@ -1,6 +1,6 @@
 {
   "name": "tshirt-scroll",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "homepage": "https://github.com/xinix-technology/tshirt-scroll",
   "authors": [
     "Dwan <me@dwaan.com>"
@@ -26,9 +26,11 @@
     "tests"
   ],
   "dependencies": {
-    "jquery": "~2.1.1",
-    "jquery-mousewheel": "~3.1.12",
-    "lato": "~0.2.2",
-    "jquery-hammerjs": "~1.1.3"
+    "jquery": "~2.1.x",
+    "jquery-mousewheel": "~3.1.x",
+    "jquery-hammerjs": "~1.1.x"
+  },
+  "devDependencies": {
+    "lato": "~0.2.x"
   }
 }

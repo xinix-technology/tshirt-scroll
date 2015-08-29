@@ -31,6 +31,6 @@
     "jquery-hammerjs": "~1.1.x"
   },
   "devDependencies": {
-    "lato": "~0.2.x"
+    "lato": "~0.3.x"
   }
 }

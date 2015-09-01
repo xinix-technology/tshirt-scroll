@@ -4,6 +4,11 @@
 	// Constant
 	window.ONSWIPE = false;
 
+	// Global variable
+	window.scrolltimeout = null;
+	window.vscrollbartimeout =  null;
+	window.hscrollbartimeout =  null;
+
 	$.fn.scroll = function (options) {
 		// Default Settings
 		var defaults = {
@@ -53,87 +58,418 @@
 				transition = "";
 			// Current item
 			var elem = $(this).parent (),
-				timer = 256;
+				timer = 512;
 			// Timestamp
 			var timestamp;
+			// Scroll element,
+			var hscrollbar = null,
+				vscrollbar = null,
+				scrollPosX = 0,
+				scrollPosY = 0,
+				scrollMapX = 0,
+				scrollMapY = 0,
+				scrollStartX = 0,
+				scrollStartY = 0;
+			// Move the vslider
+			var updateVSliderPosition = function (vslider, transition)  {
+					if (vslider.length > 0) {
+						scrollPosY = (posY / (vslider.parent().siblings().outerHeight() - vscrollbar.outerHeight()) * 100) * -1;
+						scrollPosY -= (vslider.outerHeight() / vscrollbar.outerHeight() * 100) * (scrollPosY / 100);
+
+						if (scrollPosY < 0) scrollPosY = 0;
+						if (scrollPosY > (100 - (vslider.outerHeight() / vscrollbar.outerHeight() * 100))) scrollPosY = (100 - (vslider.outerHeight() / vscrollbar.outerHeight() * 100));
+
+						vslider.css({
+							"opacity": 1,
+							"top": scrollPosY + "%",
+							"transition": transition
+						});
+
+						clearTimeout(vscrollbartimeout);
+						vscrollbartimeout = setTimeout (function () {
+							clearTimeout(vscrollbartimeout);
+
+							vslider.css({
+								"opacity": 0
+							});
+						}, (timer + (timer / 4)));
+					}
+				}, updateHSliderPosition = function (hslider, transition)  {
+					if (hslider.length > 0) {
+						scrollPosX = (posX / (hslider.parent().siblings().outerWidth() - hscrollbar.outerWidth()) * 100) * -1;
+						scrollPosX -= (hslider.outerWidth() / hscrollbar.outerWidth() * 100) * (scrollPosX / 100);
+
+						if (scrollPosX < 0) scrollPosX = 0;
+						if (scrollPosX > (100 - (hslider.outerWidth() / hscrollbar.outerWidth() * 100))) scrollPosX = (100 - (hslider.outerWidth() / hscrollbar.outerWidth() * 100));
+
+						hslider.css({
+							"opacity": 1,
+							"left": scrollPosX + "%",
+							"transition": transition
+						});
+
+						clearTimeout(hscrollbartimeout);
+						hscrollbartimeout = setTimeout (function () {
+							clearTimeout(hscrollbartimeout);
+
+							hslider.css({
+								"opacity": 0
+							});
+						}, (timer + (timer / 4)));
+					}
+				};
+			// Update content position
+			var updateContentPosition = function (elem) {
+					elem.css ({
+						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
+						"transform-origin": originX + "% " + originY + "%",
+						"transition": transition
+					});
+				}, constrainContentPosition = function (child, parent) {
+					// It's on bottom
+					if ((posX + child.outerWidth ()) <= parent.outerWidth ())
+						posX = parent.outerWidth () - child.outerWidth ();
+					if ((posY + child.outerHeight ()) <= parent.outerHeight ())
+						posY = parent.outerHeight () - child.outerHeight ();
+
+					// It's on top
+					if (posX >= 0)
+						posX = 0;
+					if (posY >= 0)
+						posY = 0;
+				};
 
 			// Assign transform CSS
 			elem.children ().css ("transform", "translate3d(0,0,0)");
 
+			// Create scroll bar
+			elem.each (function () {
+				var hsliderwidth = ($(this).outerWidth() / ($(this).children ().outerWidth()) * 100),
+					vsliderheight = ($(this).outerHeight() / ($(this).children ().outerHeight()) * 100);
+
+				// Constrain the slider size so it won't be to small
+				if (hsliderwidth < 32) hsliderwidth = 32;
+				if (vsliderheight < 32) vsliderheight = 32;
+
+				// Create the scrollsbars
+				if (vsliderheight < 100) {
+					$(this).append("<div class='scrollbar vscrollbar'><div class='vslider' /></div>").css({
+						"position": "relative"
+					});
+					vscrollbar = $(this).find(".vscrollbar").css({
+						"top": 0,
+						"bottom": 0,
+						"left": "initial",
+						"right": 0,
+						"width": 8,
+						"height": "100%"
+					});
+				}
+				if (hsliderwidth < 100) {
+					$(this).append("<div class='scrollbar hscrollbar'><div class='hslider' /></div>").css({
+						"position": "relative"
+					});
+					hscrollbar = $(this).find(".hscrollbar").css({
+						"position": "absolute",
+						"top": "initial",
+						"bottom": 0,
+						"left": 0,
+						"right": 0,
+						"width": "100%",
+						"height": 8
+					});
+				}
+				$(this).find(".scrollbar").css({
+					"position": "absolute"
+				}).children().css({
+					"position": "absolute",
+					"top": 0,
+					"background": "rgba(0,0,0,0.48)",
+					"border": "1px solid rgba(255,255,255,0.48)",
+					"border-radius": 8,
+					"opacity": 0,
+					"transition": "all 0.256s cubic-bezier(0, 0, 0.5, 1)",
+					"box-sizing": "border-box",
+					"cursor": "pointer"
+				});
+
+				// Vertical Slider actions
+				$(this).find(".vslider").css({
+					"top": 0,
+					"left": "initial",
+					"right": 0,
+					"width": 8,
+					"height": vsliderheight + "%",
+				}).hover (function () {
+					var parent = $(this).parent().siblings(),
+						twin = $("[data-twin=" + parent.data("twin") + "]");
+
+					if (twin.length > 0) parent = twin;
+					parent.each(function () {
+						updateVSliderPosition($(this).siblings().children(".vslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+					});
+					clearTimeout(vscrollbartimeout);
+				}, function () {
+					var parent = $(this).parent().siblings(),
+						twin = $("[data-twin=" + parent.data("twin") + "]");
+
+					if (twin.length > 0) parent = twin;
+
+					clearTimeout(vscrollbartimeout);
+					vscrollbartimeout = setTimeout (function () {
+						clearTimeout(vscrollbartimeout);
+
+						parent.each(function () {
+							$(this).siblings().children(".vslider").css({
+								"opacity": 0,
+								"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
+							});
+						});
+					}, timer);
+				}).hammer().on("dragstart drag dragend tap", function(event) {
+					var child = $(this).parent().siblings (":not(.scrollbar)"),
+						parent = child.parent(),
+						percentageScroll = 0;
+
+					if (event.type === "dragstart") {
+						// Touch
+						scrollStartY = event.gesture.center.pageY;
+
+						// Constrain movement
+						scrollPosY = scrollMapY = parseInt($(this).position().top);
+					}
+					if (event.type === 'drag' || event.type === 'dragend') {
+						// Count movement delta
+						deltaY = -event.gesture.deltaY;
+						// Constrain movement
+						scrollPosY = scrollMapY - deltaY;
+					}
+
+					percentageScroll = scrollPosY / $(this).parent().outerHeight () * 100;
+					posY = percentageScroll / 100 * -child.outerHeight ();
+
+					constrainContentPosition (child, parent);
+
+					// Set the transition
+					transition = "all 0s linear";
+
+					// Found out if it have twin
+					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+					// Move the scroll bar
+					updateVSliderPosition(child.siblings().children(".vslider"), transition);
+					clearTimeout(vscrollbartimeout);
+					// Move the content
+					updateContentPosition (child);
+				});
+
+				// Horizontal Slider actions
+				$(this).find(".hslider").css({
+					"top": 0,
+					"left": 0,
+					"width": hsliderwidth + "%",
+					"height": 8
+				}).hover (function () {
+					var parent = $(this).parent().siblings(),
+						twin = $("[data-twin=" + parent.data("twin") + "]");
+
+					if (twin.length > 0) parent = twin;
+					parent.each(function () {
+						updateHSliderPosition($(this).siblings().children(".hslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+					});
+					clearTimeout(hscrollbartimeout);
+				}, function () {
+					var parent = $(this).parent().siblings(),
+						twin = $("[data-twin=" + parent.data("twin") + "]");
+
+					if (twin.length > 0) parent = twin;
+
+					clearTimeout(hscrollbartimeout);
+					hscrollbartimeout = setTimeout (function () {
+						clearTimeout(hscrollbartimeout);
+
+						parent.each(function () {
+							$(this).siblings().children(".hslider").css({
+								"opacity": 0,
+								"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
+							});
+						});
+					}, timer);
+				}).hammer().on("dragstart drag dragend tap", function(event) {
+					var child = $(this).parent().siblings (":not(.scrollbar)"),
+						parent = child.parent(),
+						percentageScroll = 0;
+
+					if (event.type === "dragstart") {
+						// Touch
+						scrollStartX = event.gesture.center.pageX;
+
+						// Constrain movement
+						scrollPosX = scrollMapX = parseInt($(this).position().left);
+					}
+					if (event.type === 'drag' || event.type === 'dragend') {
+						// Count movement delta
+						deltaX = -event.gesture.deltaX;
+						// Constrain movement
+						scrollPosX = scrollMapX - deltaX;
+					}
+
+					percentageScroll = scrollPosX / $(this).parent().outerWidth () * 100;
+					posX = percentageScroll / 100 * -child.outerWidth ();
+
+					constrainContentPosition (child, parent);
+
+					// Set the transition
+					transition = "all 0s linear";
+
+					// Found out if it have twin
+					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+					// Move the scroll bar
+					updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					clearTimeout(hscrollbartimeout);
+					// Move the content
+					updateContentPosition (child);
+				});
+			});
+
 			// Assign touch event
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
 				var parent = $(this),
-					child = $(this).children ();
+					child = $(this).children (":not(.scrollbar)");
 
-				if (event.type === "dragstart") {
-					// Map
-					matrix = child.css ("transform").split (", ");
-					mapX = parseInt(matrix[4]);
-					mapY = matrix[5].split (")");
-					mapY = parseInt(mapY[0]);
+				if (!$(event.target).hasClass ("hslider") && !$(event.target).hasClass ("vslider") ) {
+					if (event.type === "dragstart") {
+						// Map
+						matrix = child.css ("transform").split (", ");
+						mapX = parseInt(matrix[4]);
+						mapY = matrix[5].split (")");
+						mapY = parseInt(mapY[0]);
 
-					// Touch
-					firstX = event.gesture.center.pageX;
-					firstY = event.gesture.center.pageY;
+						// Touch
+						firstX = event.gesture.center.pageX;
+						firstY = event.gesture.center.pageY;
 
-					// Constrain movement
-					posX = mapX;
-					posY = mapY;
-				}
-				if (event.type === 'drag') {
-					// Make a status no element can't be tap
-					ONSWIPE = true;
-					// Count movement delta
-					deltaX = -event.gesture.deltaX;
-					deltaY = -event.gesture.deltaY;
-					// Constrain movement
-					posX = mapX - deltaX;
-					posY = mapY - deltaY;
+						// Constrain movement
+						posX = mapX;
+						posY = mapY;
+					}
+					if (event.type === 'drag') {
+						// Make a status no element can't be tap
+						ONSWIPE = true;
+						// Count movement delta
+						deltaX = -event.gesture.deltaX;
+						deltaY = -event.gesture.deltaY;
+						// Constrain movement
+						posX = mapX - deltaX;
+						posY = mapY - deltaY;
 
-					// Count the viewable boundry
-					if (rubber) {
-						if ((posX + child.width ()) <= parent.width ()) {
-							posX = parent.width () - child.width ();
-							originX = 100;
-							scaleX = 1 + (deltaX / parent.width ());
+						// Count the viewable boundry
+						if (rubber) {
+							if ((posX + child.outerWidth ()) <= parent.outerWidth ()) {
+								posX = parent.outerWidth () - child.outerWidth ();
+								originX = 100;
+								scaleX = 1 + (deltaX / parent.outerWidth ());
+							}
+							if ((posY + child.outerHeight ()) <= parent.outerHeight ()) {
+								posY = parent.outerHeight () - child.outerHeight ();
+								originY = 100;
+								scaleY = 1 + (deltaY / parent.outerHeight ());
+							}
+
+							if (posX >= 0) {
+								originX = posX = 0;
+								scaleX = 1 - (deltaX / parent.outerWidth ())
+							}
+							if (posY >= 0) {
+								originY = posY = 0;
+								scaleY = 1 - (deltaY / parent.outerHeight ())
+							}
 						}
-						if ((posY + child.height ()) <= parent.height ()) {
-							posY = parent.height () - child.height ();
-							originY = 100;
-							scaleY = 1 + (deltaY / parent.height ());
+
+						// Calling the callbacks
+						if ((posX + child.outerWidth ()) <= parent.outerWidth ())  		onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if ((posY + child.outerHeight ()) <= parent.outerHeight ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if (posX >= 0)   												onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if (posY >= 0)  												onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
+
+						// Get the last accelerator
+						acceleratorX = event.gesture.velocityX;
+						acceleratorY = event.gesture.velocityY;
+						if (acceleratorX > acceleratorY) accelerator = acceleratorX;
+						else accelerator = acceleratorY;
+
+						transition = "all 0s linear";
+						timestamp = Math.round(+new Date() / 100);
+					}
+					if (event.type === 'dragend') {
+						// Count the the move speed for slow down animation
+						if (acceleratorX > 0.1)
+							posX = mapX - (deltaX * (10 * acceleratorX));
+						if (acceleratorY > 0.1)
+							posY = mapY - (deltaY * (10 * acceleratorY));
+
+						if (scrollHorizontal && !scrollVertical) {
+							posY = 0;
+							scaleY = 1;
+						}
+						if (!scrollHorizontal && scrollVertical) {
+							posX = 0;
+							scaleX = 1;
 						}
 
-						if (posX >= 0) {
-							originX = posX = 0;
-							scaleX = 1 - (deltaX / parent.width ())
-						}
-						if (posY >= 0) {
-							originY = posY = 0;
-							scaleY = 1 - (deltaY / parent.height ())
-						}
+						accelerator = Math.round (accelerator * 100) / 100;
+						if (accelerator < 1)
+							transition = "all " + accelerator + "s cubic-bezier(0, 0, 0.5, 1)";
+						else
+							transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
+
+						// Count the viewable boundry
+						if ((posX + child.outerWidth ()) <= parent.outerWidth ())
+							posX = parent.outerWidth () - child.outerWidth ();
+						if ((posY + child.outerHeight ()) <= parent.outerHeight ())
+							posY = parent.outerHeight () - child.outerHeight ();
+
+						if (posX >= 0)
+							posX = 0;
+						if (posY >= 0)
+							posY = 0;
+
+						if (child.outerWidth () <= parent.outerWidth ())
+							posX = 0;
+						if (child.outerHeight () <= parent.outerHeight ())
+							posY = 0;
+
+						scaleX = scaleY = 1;
+
+						// Make a status no element can be tap
+						ONSWIPE = false;
+					}
+					if (event.type === 'tap') {
+						matrix = child.css ("transform").split (", ");
+						mapX = parseInt(matrix[4]);
+						mapY = matrix[5].split (")");
+						mapY = parseInt(mapY[0]);
+
+						posX = mapX;
+						posY = mapY;
+
+						scaleX = scaleY = 1;
+
+						originX = originY = 0;
+
+						transition = "all 0s cubic-bezier(0, 0, 0.5, 1)";
 					}
 
-					// Calling the callbacks
-					if ((posX + child.width ()) <= parent.width ())  	onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
-					if ((posY + child.height ()) <= parent.height ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
-					if (posX >= 0)   									onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
-					if (posY >= 0)  									onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
-
-					// Get the last accelerator
-					acceleratorX = event.gesture.velocityX;
-					acceleratorY = event.gesture.velocityY;
-					if (acceleratorX > acceleratorY) accelerator = acceleratorX;
-					else accelerator = acceleratorY;
-
-					transition = "all 0s linear";
-					timestamp = Math.round(+new Date() / 100);
-				}
-				if (event.type === 'dragend') {
-					// Count the the move speed for slow down animation
-					if (acceleratorX > 0.1)
-						posX = mapX - (deltaX * (10 * acceleratorX));
-					if (acceleratorY > 0.1)
-						posY = mapY - (deltaY * (10 * acceleratorY));
+					// It's shorter than container
+					if (!allowSmaller) {
+						if (child.outerWidth () <= parent.outerWidth ()) {
+							originX = posX = 0;
+							scaleX = 1;
+						}
+						if (child.outerHeight () <= parent.outerHeight ()) {
+							originY = posY = 0;
+							scaleY = 1;
+						}
+					}
 
 					if (scrollHorizontal && !scrollVertical) {
 						posY = 0;
@@ -144,97 +480,30 @@
 						scaleX = 1;
 					}
 
-					accelerator = Math.round (accelerator * 100) / 100;
-					if (accelerator < 1)
-						transition = "all " + accelerator + "s cubic-bezier(0, 0, 0.5, 1)";
-					else
-						transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
+					posX = Math.round (posX);
+					posY = Math.round (posY);
 
-					// Count the viewable boundry
-					if ((posX + child.width ()) <= parent.width ())
-						posX = parent.width () - child.width ();
-					if ((posY + child.height ()) <= parent.height ())
-						posY = parent.height () - child.height ();
+					// Found out if it have twin
+					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+					// Move the scroll bar
+					updateVSliderPosition(child.siblings().children(".vslider"), transition);
+					updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					// Move the content
+					updateContentPosition(child);
 
-					if (posX >= 0)
-						posX = 0;
-					if (posY >= 0)
-						posY = 0;
+					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
 
-					if (child.width () <= parent.width ())
-						posX = 0;
-					if (child.height () <= parent.height ())
-						posY = 0;
-
-					scaleX = scaleY = 1;
-
-					// Make a status no element can be tap
-					ONSWIPE = false;
-				}
-				if (event.type === 'tap') {
-					matrix = child.css ("transform").split (", ");
-					mapX = parseInt(matrix[4]);
-					mapY = matrix[5].split (")");
-					mapY = parseInt(mapY[0]);
-
-					posX = mapX;
-					posY = mapY;
-
-					scaleX = scaleY = 1;
-
-					originX = originY = 0;
-
-					transition = "all 0s cubic-bezier(0, 0, 0.5, 1)";
-				}
-
-				// It's shorter than container
-				if (!allowSmaller) {
-					if (child.width () <= parent.width ()) {
-						originX = posX = 0;
-						scaleX = 1;
+					if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
+						event.gesture.preventDefault();
+						event.gesture.stopPropagation();
 					}
-					if (child.height () <= parent.height ()) {
-						originY = posY = 0;
-						scaleY = 1;
-					}
-				}
-
-				if (scrollHorizontal && !scrollVertical) {
-					posY = 0;
-					scaleY = 1;
-				}
-				if (!scrollHorizontal && scrollVertical) {
-					posX = 0;
-					scaleX = 1;
-				}
-
-				posX = Math.round (posX);
-				posY = Math.round (posY);
-
-				child.css ({
-					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-					"transform-origin": originX + "% " + originY + "%",
-					"transition": transition
-				});
-
-				$('[data-twin=' + child.attr("data-twin") + ']').css ({
-					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-					"transform-origin": originX + "% " + originY + "%",
-					"transition": transition
-				});
-
-				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
-
-				if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
-					event.gesture.preventDefault();
-					event.gesture.stopPropagation();
 				}
 			});
 
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
 				var parent = $(this),
-					child = $(this).children ();
+					child = $(this).children (":not(.scrollbar)");
 
 				// Map
 				matrix = child.css ("transform").split (", ");
@@ -253,78 +522,76 @@
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
 
-
 				transition = "all 0s linear";
 
 				// Count the viewable boundry
 				if (rubber) {
 					// It's on right
-					if ((posX + child.width ()) <= parent.width ()) {
-						posX = parent.width () - child.width ();
+					if ((posX + child.outerWidth ()) <= parent.outerWidth ()) {
+						posX = parent.outerWidth () - child.outerWidth ();
 						originX = 100;
-						scaleX = 1 + Math.abs(deltaX / parent.width ());
+						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
 						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on bottom
-					if ((posY + child.height ()) <= parent.height ()) {
-						posY = parent.height () - child.height ();
+					if ((posY + child.outerHeight ()) <= parent.outerHeight ()) {
+						posY = parent.outerHeight () - child.outerHeight ();
 						originY = 100;
-						scaleY = 1 + Math.abs(deltaY / parent.height ());
+						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
 						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on left
 					if (posX >= 0) {
 						originX = posX = 0;
-						scaleX = 1 + Math.abs(deltaX / parent.width ());
+						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
 						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on top
 					if (posY >= 0) {
 						originY = posY = 0;
-						scaleY = 1 + Math.abs(deltaY / parent.height ());
+						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
-
 				} else {
 					// It's on right
-					if ((posX + child.width ()) <= parent.width () && scrollHorizontal) {
+					if ((posX + child.outerWidth ()) <= parent.outerWidth () && scrollHorizontal) {
 						posX -= (1 / (posX * 100));
-						if ((posX + child.width ()) <= -(parent.width () * 2) ) posX = -(parent.width () * 2) - child.width ();
+						if ((posX + child.outerWidth ()) <= -(parent.outerWidth () * 2) ) posX = -(parent.outerWidth () * 2) - child.outerWidth ();
 						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on bottom
-					if ((posY + child.height ()) <= parent.height () && scrollVertical) {
+					if ((posY + child.outerHeight ()) <= parent.outerHeight () && scrollVertical) {
 						posY -= (1 / (posY * 100));
-						if ((posY + child.height ()) <= -(parent.height () * 2) ) posY = -(parent.height () * 2) - child.height ();
+						if ((posY + child.outerHeight ()) <= -(parent.outerHeight () * 2) ) posY = -(parent.outerHeight () * 2) - child.outerHeight ();
 						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on left
 					if (posX >= 0 && scrollHorizontal) {
 						posX += (1 / (deltaX * 100));
-						if (posX >= parent.width ()) posX = parent.width ();
+						if (posX >= parent.outerWidth ()) posX = parent.outerWidth ();
 						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 
 					// It's on top
 					if (posY >= 0 && scrollVertical) {
 						posY += (1 / (deltaY * 100));
-						if (posY >= parent.height ()) posY = parent.height ();
+						if (posY >= parent.outerHeight ()) posY = parent.outerHeight ();
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
 					}
 				}
 
 				// It's shorter than container
 				if (!allowSmaller) {
-					if (child.width () <= parent.width ()) {
+					if (child.outerWidth () <= parent.outerWidth ()) {
 						originX = posX = 0;
 						scaleX = 1;
 					}
-					if (child.height () <= parent.height ()) {
+					if (child.outerHeight () <= parent.outerHeight ()) {
 						originY = posY = 0;
 						scaleY = 1;
 					}
@@ -340,47 +607,32 @@
 					scaleX = 1;
 				}
 
-				child.css ({
-					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-					"transform-origin": originX + "% " + originY + "%",
-					"transition": transition
-				});
-				$('[data-twin=' + child.attr("data-twin") + ']').css ({
-					"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-					"transform-origin": originX + "% " + originY + "%",
-					"transition": transition
-				});
+				// Found out if it have twin
+				if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+				// Move the scroll bar
+				updateVSliderPosition(child.siblings().children(".vslider"), transition);
+				updateHSliderPosition(child.siblings().children(".hslider"), transition);
+				// Move the content
+				updateContentPosition (child);
 
-				// Save the current element
-				window.tempparent = parent;
+				// Prevent element to over scrolled
+				clearTimeout(scrolltimeout);
+				scrolltimeout = setTimeout (function () {
+					clearTimeout(scrolltimeout);
 
-				// Prevent element to over scrolled - should be on mouse up
-				setTimeout (function () {
-					tempparent.each(function (){
-						// It's on bottom
-						if ((posX + child.width ()) <= parent.width ())
-							posX = parent.width () - child.width ();
-						if ((posY + child.height ()) <= parent.height ())
-							posY = parent.height () - child.height ();
+					parent.each(function (){
+						constrainContentPosition (child, parent);
 
-						// It's on top
-						if (posX >= 0)
-							posX = 0;
-						if (posY >= 0)
-							posY = 0;
-
+						// Set the transition
 						transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
-						child.css ({
-							"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-							"transform-origin": originX + "% " + originY + "%",
-							"transition": transition
-						});
-						$('[data-twin=' + child.attr("data-twin") + ']').css ({
-							"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-							"transform-origin": originX + "% " + originY + "%",
-							"transition": transition
-						});
+						// Found out if it have twin
+						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+						// Move the scroll bar
+						updateVSliderPosition(child.siblings().children(".vslider"), transition);
+						updateHSliderPosition(child.siblings().children(".hslider"), transition);
+						// Move the content
+						updateContentPosition (child);
 					});
 				}, timer);
 

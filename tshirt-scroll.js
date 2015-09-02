@@ -161,11 +161,10 @@
 						});
 						vscrollbar = $(this).find(".vscrollbar").css({
 							"top": 0,
-							"bottom": 0,
+							"bottom": 8,
 							"left": "initial",
 							"right": 0,
-							"width": 8,
-							"height": "100%"
+							"width": 8
 						});
 					}
 					if (hsliderwidth < 100) {
@@ -177,8 +176,7 @@
 							"top": "initial",
 							"bottom": 0,
 							"left": 0,
-							"right": 0,
-							"width": "100%",
+							"right": 8,
 							"height": 8
 						});
 					}
@@ -529,6 +527,10 @@
 				if (deltaX === 0) deltaX = 1;
 				if (deltaY === 0) deltaY = 1;
 
+				if (Math.abs(deltaX) > Math.abs(deltaY)) deltaY = 0;
+				else if (Math.abs(deltaX) < Math.abs(deltaY)) deltaX = 0;
+				else deltaX = deltaY = 0;
+
 				// Constrain movement
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
@@ -623,8 +625,8 @@
 
 				// Move the scroll bar
 				if (showScroll) {
-					updateVSliderPosition(child.siblings().children(".vslider"), transition);
-					updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					if (deltaY) updateVSliderPosition(child.siblings().children(".vslider"), transition);
+					if (deltaX) updateHSliderPosition(child.siblings().children(".hslider"), transition);
 				}
 
 				// Move the content
@@ -646,8 +648,8 @@
 
 						// Move the scroll bar
 						if (showScroll) {
-							updateVSliderPosition(child.siblings().children(".vslider"), transition);
-							updateHSliderPosition(child.siblings().children(".hslider"), transition);
+							if (deltaY) updateVSliderPosition(child.siblings().children(".vslider"), transition);
+							if (deltaX) updateHSliderPosition(child.siblings().children(".hslider"), transition);
 						}
 
 						// Move the content

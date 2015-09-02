@@ -17,11 +17,11 @@
 				scrollHorizontal: false,
 				allowSmaller: false,
 				showScroll: true,
-				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
-				onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
-				onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
-				onReachLeft: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
-				onReachRight: function (posX, posY, scaleX, scaleY, originX, originY, transition) {}
+				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
+				onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
+				onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
+				onReachLeft: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
+				onReachRight: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {}
 			},
 			settings = $.extend({}, defaults, options);
 
@@ -395,10 +395,10 @@
 						}
 
 						// Calling the callbacks
-						if ((posX + child.outerWidth ()) <= parent.outerWidth ())  		onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if ((posY + child.outerHeight ()) <= parent.outerHeight ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if (posX >= 0)   												onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition);
-						if (posY >= 0)  												onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition);
+						if ((posX + child.outerWidth ()) <= parent.outerWidth ())  		onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if ((posY + child.outerHeight ()) <= parent.outerHeight ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if (posX >= 0)   												onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if (posY >= 0)  												onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
 
 						// Get the last accelerator
 						acceleratorX = event.gesture.velocityX;
@@ -502,7 +502,7 @@
 					// Move the content
 					updateContentPosition(child);
 
-					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
+					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
 
 					if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
 						event.gesture.preventDefault();
@@ -542,7 +542,7 @@
 						posX = parent.outerWidth () - child.outerWidth ();
 						originX = 100;
 						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
-						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on bottom
@@ -550,49 +550,49 @@
 						posY = parent.outerHeight () - child.outerHeight ();
 						originY = 100;
 						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
-						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on left
 					if (posX >= 0) {
 						originX = posX = 0;
 						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
-						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on top
 					if (posY >= 0) {
 						originY = posY = 0;
 						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
-						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 				} else {
 					// It's on right
 					if ((posX + child.outerWidth ()) <= parent.outerWidth () && scrollHorizontal) {
 						posX -= (1 / (posX * 100));
 						if ((posX + child.outerWidth ()) <= -(parent.outerWidth () * 2) ) posX = -(parent.outerWidth () * 2) - child.outerWidth ();
-						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on bottom
 					if ((posY + child.outerHeight ()) <= parent.outerHeight () && scrollVertical) {
 						posY -= (1 / (posY * 100));
 						if ((posY + child.outerHeight ()) <= -(parent.outerHeight () * 2) ) posY = -(parent.outerHeight () * 2) - child.outerHeight ();
-						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on left
 					if (posX >= 0 && scrollHorizontal) {
 						posX += (1 / (deltaX * 100));
 						if (posX >= parent.outerWidth ()) posX = parent.outerWidth ();
-						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 
 					// It's on top
 					if (posY >= 0 && scrollVertical) {
 						posY += (1 / (deltaY * 100));
 						if (posY >= parent.outerHeight ()) posY = parent.outerHeight ();
-						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition);
+						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 				}
 
@@ -655,7 +655,7 @@
 					});
 				}, timer);
 
-				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition);
+				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 
 				event.preventDefault();
 			});

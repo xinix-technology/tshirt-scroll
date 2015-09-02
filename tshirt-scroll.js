@@ -16,6 +16,7 @@
 				scrollVertical: true,
 				scrollHorizontal: false,
 				allowSmaller: false,
+				showScroll: true,
 				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
 				onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
 				onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition) {},
@@ -30,6 +31,7 @@
 				scrollVertical = settings.scrollVertical,
 				scrollHorizontal = settings.scrollHorizontal,
 				allowSmaller = settings.allowSmaller,
+				showScroll = settings.showScroll,
 				onScroll = settings.onScroll,
 				onReachTop = settings.onReachTop,
 				onReachBottom = settings.onReachBottom,
@@ -72,7 +74,7 @@
 				scrollStartY = 0;
 			// Move the vslider
 			var updateVSliderPosition = function (vslider, transition)  {
-					if (vslider.length > 0) {
+					if (showScroll && vslider.length > 0) {
 						scrollPosY = (posY / (vslider.parent().siblings().outerHeight() - vscrollbar.outerHeight()) * 100) * -1;
 						scrollPosY -= (vslider.outerHeight() / vscrollbar.outerHeight() * 100) * (scrollPosY / 100);
 
@@ -95,7 +97,7 @@
 						}, (timer + (timer / 4)));
 					}
 				}, updateHSliderPosition = function (hslider, transition)  {
-					if (hslider.length > 0) {
+					if (showScroll && hslider.length > 0) {
 						scrollPosX = (posX / (hslider.parent().siblings().outerWidth() - hscrollbar.outerWidth()) * 100) * -1;
 						scrollPosX -= (hslider.outerWidth() / hscrollbar.outerWidth() * 100) * (scrollPosX / 100);
 
@@ -143,193 +145,200 @@
 			elem.children ().css ("transform", "translate3d(0,0,0)");
 
 			// Create scroll bar
-			elem.each (function () {
-				var hsliderwidth = ($(this).outerWidth() / ($(this).children ().outerWidth()) * 100),
-					vsliderheight = ($(this).outerHeight() / ($(this).children ().outerHeight()) * 100);
+			if (showScroll) {
+				elem.each (function () {
+					var hsliderwidth = ($(this).outerWidth() / ($(this).children ().outerWidth()) * 100),
+						vsliderheight = ($(this).outerHeight() / ($(this).children ().outerHeight()) * 100);
 
-				// Constrain the slider size so it won't be to small
-				if (hsliderwidth < 32) hsliderwidth = 32;
-				if (vsliderheight < 32) vsliderheight = 32;
+					// Constrain the slider size so it won't be to small
+					if (hsliderwidth < 32) hsliderwidth = 32;
+					if (vsliderheight < 32) vsliderheight = 32;
 
-				// Create the scrollsbars
-				if (vsliderheight < 100) {
-					$(this).append("<div class='scrollbar vscrollbar'><div class='vslider' /></div>").css({
-						"position": "relative"
-					});
-					vscrollbar = $(this).find(".vscrollbar").css({
+					// Create the scrollsbars
+					if (vsliderheight < 100) {
+						$(this).append("<div class='scrollbar vscrollbar'><div class='vslider' /></div>").css({
+							"position": "relative"
+						});
+						vscrollbar = $(this).find(".vscrollbar").css({
+							"top": 0,
+							"bottom": 0,
+							"left": "initial",
+							"right": 0,
+							"width": 8,
+							"height": "100%"
+						});
+					}
+					if (hsliderwidth < 100) {
+						$(this).append("<div class='scrollbar hscrollbar'><div class='hslider' /></div>").css({
+							"position": "relative"
+						});
+						hscrollbar = $(this).find(".hscrollbar").css({
+							"position": "absolute",
+							"top": "initial",
+							"bottom": 0,
+							"left": 0,
+							"right": 0,
+							"width": "100%",
+							"height": 8
+						});
+					}
+					$(this).find(".scrollbar").css({
+						"position": "absolute"
+					}).children().css({
+						"position": "absolute",
 						"top": 0,
-						"bottom": 0,
+						"background": "rgba(0,0,0,0.48)",
+						"border": "1px solid rgba(255,255,255,0.48)",
+						"border-radius": 8,
+						"opacity": 0,
+						"transition": "all 0.256s cubic-bezier(0, 0, 0.5, 1)",
+						"box-sizing": "border-box",
+						"cursor": "pointer"
+					});
+
+					// Vertical Slider actions
+					$(this).find(".vslider").css({
+						"top": 0,
 						"left": "initial",
 						"right": 0,
 						"width": 8,
-						"height": "100%"
-					});
-				}
-				if (hsliderwidth < 100) {
-					$(this).append("<div class='scrollbar hscrollbar'><div class='hslider' /></div>").css({
-						"position": "relative"
-					});
-					hscrollbar = $(this).find(".hscrollbar").css({
-						"position": "absolute",
-						"top": "initial",
-						"bottom": 0,
-						"left": 0,
-						"right": 0,
-						"width": "100%",
-						"height": 8
-					});
-				}
-				$(this).find(".scrollbar").css({
-					"position": "absolute"
-				}).children().css({
-					"position": "absolute",
-					"top": 0,
-					"background": "rgba(0,0,0,0.48)",
-					"border": "1px solid rgba(255,255,255,0.48)",
-					"border-radius": 8,
-					"opacity": 0,
-					"transition": "all 0.256s cubic-bezier(0, 0, 0.5, 1)",
-					"box-sizing": "border-box",
-					"cursor": "pointer"
-				});
+						"height": vsliderheight + "%",
+					}).hover (function () {
+						var parent = $(this).parent().siblings(),
+							twin = $("[data-twin=" + parent.data("twin") + "]");
 
-				// Vertical Slider actions
-				$(this).find(".vslider").css({
-					"top": 0,
-					"left": "initial",
-					"right": 0,
-					"width": 8,
-					"height": vsliderheight + "%",
-				}).hover (function () {
-					var parent = $(this).parent().siblings(),
-						twin = $("[data-twin=" + parent.data("twin") + "]");
-
-					if (twin.length > 0) parent = twin;
-					parent.each(function () {
-						updateVSliderPosition($(this).siblings().children(".vslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
-					});
-					clearTimeout(vscrollbartimeout);
-				}, function () {
-					var parent = $(this).parent().siblings(),
-						twin = $("[data-twin=" + parent.data("twin") + "]");
-
-					if (twin.length > 0) parent = twin;
-
-					clearTimeout(vscrollbartimeout);
-					vscrollbartimeout = setTimeout (function () {
+						if (twin.length > 0) parent = twin;
+						parent.each(function () {
+							updateVSliderPosition($(this).siblings().children(".vslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+						});
 						clearTimeout(vscrollbartimeout);
+					}, function () {
+						var parent = $(this).parent().siblings(),
+							twin = $("[data-twin=" + parent.data("twin") + "]");
 
-						parent.each(function () {
-							$(this).siblings().children(".vslider").css({
-								"opacity": 0,
-								"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
+						if (twin.length > 0) parent = twin;
+
+						clearTimeout(vscrollbartimeout);
+						vscrollbartimeout = setTimeout (function () {
+							clearTimeout(vscrollbartimeout);
+
+							parent.each(function () {
+								$(this).siblings().children(".vslider").css({
+									"opacity": 0,
+									"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
+								});
 							});
-						});
-					}, timer);
-				}).hammer().on("dragstart drag dragend tap", function(event) {
-					var child = $(this).parent().siblings (":not(.scrollbar)"),
-						parent = child.parent(),
-						percentageScroll = 0;
+						}, timer);
+					}).hammer().on("dragstart drag dragend tap", function(event) {
+						var child = $(this).parent().siblings (":not(.scrollbar)"),
+							parent = child.parent(),
+							percentageScroll = 0;
 
-					if (event.type === "dragstart") {
-						// Touch
-						scrollStartY = event.gesture.center.pageY;
+						if (event.type === "dragstart") {
+							// Touch
+							scrollStartY = event.gesture.center.pageY;
 
-						// Constrain movement
-						scrollPosY = scrollMapY = parseInt($(this).position().top);
-					}
-					if (event.type === 'drag' || event.type === 'dragend') {
-						// Count movement delta
-						deltaY = -event.gesture.deltaY;
-						// Constrain movement
-						scrollPosY = scrollMapY - deltaY;
-					}
+							// Constrain movement
+							scrollPosY = scrollMapY = parseInt($(this).position().top);
+						}
+						if (event.type === 'drag' || event.type === 'dragend') {
+							// Count movement delta
+							deltaY = -event.gesture.deltaY;
+							// Constrain movement
+							scrollPosY = scrollMapY - deltaY;
+						}
 
-					percentageScroll = scrollPosY / $(this).parent().outerHeight () * 100;
-					posY = percentageScroll / 100 * -child.outerHeight ();
+						percentageScroll = scrollPosY / $(this).parent().outerHeight () * 100;
+						posY = percentageScroll / 100 * -child.outerHeight ();
 
-					constrainContentPosition (child, parent);
+						constrainContentPosition (child, parent);
 
-					// Set the transition
-					transition = "all 0s linear";
+						// Set the transition
+						transition = "all 0s linear";
 
-					// Found out if it have twin
-					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
-					// Move the scroll bar
-					updateVSliderPosition(child.siblings().children(".vslider"), transition);
-					clearTimeout(vscrollbartimeout);
-					// Move the content
-					updateContentPosition (child);
-				});
-
-				// Horizontal Slider actions
-				$(this).find(".hslider").css({
-					"top": 0,
-					"left": 0,
-					"width": hsliderwidth + "%",
-					"height": 8
-				}).hover (function () {
-					var parent = $(this).parent().siblings(),
-						twin = $("[data-twin=" + parent.data("twin") + "]");
-
-					if (twin.length > 0) parent = twin;
-					parent.each(function () {
-						updateHSliderPosition($(this).siblings().children(".hslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+						// Found out if it have twin
+						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+						// Move the scroll bar
+						updateVSliderPosition(child.siblings().children(".vslider"), transition);
+						clearTimeout(vscrollbartimeout);
+						// Move the content
+						updateContentPosition (child);
 					});
-					clearTimeout(hscrollbartimeout);
-				}, function () {
-					var parent = $(this).parent().siblings(),
-						twin = $("[data-twin=" + parent.data("twin") + "]");
 
-					if (twin.length > 0) parent = twin;
+					// Horizontal Slider actions
+					$(this).find(".hslider").css({
+						"top": 0,
+						"left": 0,
+						"width": hsliderwidth + "%",
+						"height": 8
+					}).hover (function () {
+						var parent = $(this).parent().siblings(),
+							twin = $("[data-twin=" + parent.data("twin") + "]");
 
-					clearTimeout(hscrollbartimeout);
-					hscrollbartimeout = setTimeout (function () {
-						clearTimeout(hscrollbartimeout);
-
+						if (twin.length > 0) parent = twin;
 						parent.each(function () {
-							$(this).siblings().children(".hslider").css({
-								"opacity": 0,
-								"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
-							});
+							updateHSliderPosition($(this).siblings().children(".hslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
 						});
-					}, timer);
-				}).hammer().on("dragstart drag dragend tap", function(event) {
-					var child = $(this).parent().siblings (":not(.scrollbar)"),
-						parent = child.parent(),
-						percentageScroll = 0;
+						clearTimeout(hscrollbartimeout);
+					}, function () {
+						var parent = $(this).parent().siblings(),
+							twin = $("[data-twin=" + parent.data("twin") + "]");
 
-					if (event.type === "dragstart") {
-						// Touch
-						scrollStartX = event.gesture.center.pageX;
+						if (twin.length > 0) parent = twin;
 
-						// Constrain movement
-						scrollPosX = scrollMapX = parseInt($(this).position().left);
-					}
-					if (event.type === 'drag' || event.type === 'dragend') {
-						// Count movement delta
-						deltaX = -event.gesture.deltaX;
-						// Constrain movement
-						scrollPosX = scrollMapX - deltaX;
-					}
+						clearTimeout(hscrollbartimeout);
+						hscrollbartimeout = setTimeout (function () {
+							clearTimeout(hscrollbartimeout);
 
-					percentageScroll = scrollPosX / $(this).parent().outerWidth () * 100;
-					posX = percentageScroll / 100 * -child.outerWidth ();
+							parent.each(function () {
+								$(this).siblings().children(".hslider").css({
+									"opacity": 0,
+									"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
+								});
+							});
+						}, timer);
+					}).hammer().on("dragstart drag dragend tap", function(event) {
+						var child = $(this).parent().siblings (":not(.scrollbar)"),
+							parent = child.parent(),
+							percentageScroll = 0;
 
-					constrainContentPosition (child, parent);
+						if (event.type === "dragstart") {
+							// Touch
+							scrollStartX = event.gesture.center.pageX;
 
-					// Set the transition
-					transition = "all 0s linear";
+							// Constrain movement
+							scrollPosX = scrollMapX = parseInt($(this).position().left);
+						}
+						if (event.type === 'drag' || event.type === 'dragend') {
+							// Count movement delta
+							deltaX = -event.gesture.deltaX;
+							// Constrain movement
+							scrollPosX = scrollMapX - deltaX;
+						}
 
-					// Found out if it have twin
-					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
-					// Move the scroll bar
-					updateHSliderPosition(child.siblings().children(".hslider"), transition);
-					clearTimeout(hscrollbartimeout);
-					// Move the content
-					updateContentPosition (child);
+						percentageScroll = scrollPosX / $(this).parent().outerWidth () * 100;
+						posX = percentageScroll / 100 * -child.outerWidth ();
+
+						constrainContentPosition (child, parent);
+
+						// Set the transition
+						transition = "all 0s linear";
+
+						// Found out if it have twin
+						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+						// Move the scroll bar
+						updateHSliderPosition(child.siblings().children(".hslider"), transition);
+						clearTimeout(hscrollbartimeout);
+						// Move the content
+						updateContentPosition (child);
+
+						if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
+							event.gesture.preventDefault();
+							event.gesture.stopPropagation();
+						}
+					});
 				});
-			});
+			}
 
 			// Assign touch event
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
@@ -486,8 +495,10 @@
 					// Found out if it have twin
 					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
 					// Move the scroll bar
-					updateVSliderPosition(child.siblings().children(".vslider"), transition);
-					updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					if (showScroll) {
+						updateVSliderPosition(child.siblings().children(".vslider"), transition);
+						updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					}
 					// Move the content
 					updateContentPosition(child);
 
@@ -609,9 +620,13 @@
 
 				// Found out if it have twin
 				if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+
 				// Move the scroll bar
-				updateVSliderPosition(child.siblings().children(".vslider"), transition);
-				updateHSliderPosition(child.siblings().children(".hslider"), transition);
+				if (showScroll) {
+					updateVSliderPosition(child.siblings().children(".vslider"), transition);
+					updateHSliderPosition(child.siblings().children(".hslider"), transition);
+				}
+
 				// Move the content
 				updateContentPosition (child);
 
@@ -628,9 +643,13 @@
 
 						// Found out if it have twin
 						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+
 						// Move the scroll bar
-						updateVSliderPosition(child.siblings().children(".vslider"), transition);
-						updateHSliderPosition(child.siblings().children(".hslider"), transition);
+						if (showScroll) {
+							updateVSliderPosition(child.siblings().children(".vslider"), transition);
+							updateHSliderPosition(child.siblings().children(".hslider"), transition);
+						}
+
 						// Move the content
 						updateContentPosition (child);
 					});

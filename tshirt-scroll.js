@@ -72,65 +72,39 @@
 				scrollMapY = 0,
 				scrollStartX = 0,
 				scrollStartY = 0;
+			// Helper
+			var transformExtract = function (style) {
+				var matrix = "",
+					mapX = 0,
+					mapY = 0;
+
+				if (style.webkitTransform != "") matrix = style.webkitTransform;
+				else if (style.MozTransform != "") matrix = style.MozTransform;
+				else if (style.msTransform != "") matrix = style.msTransform;
+				else if (style.OTransform != "") matrix = style.OTransform;
+				else if (style.transform != "") matrix = style.transform;
+
+				matrix += "";
+				matrix = matrix.replace (/\px/g, "");
+				matrix = matrix.split(", ");
+
+				mapX = parseInt(matrix[0].replace ("translate3d(", ""));
+				mapY = parseInt(matrix[1]);
+
+				return [mapX, mapY];
+			};
 			// Move the vslider
-			var updateVSliderPosition = function (vslider, transition)  {
-					if (showScroll && vslider.length > 0) {
-						scrollPosY = (posY / (vslider.parent().siblings().outerHeight() - vscrollbar.outerHeight()) * 100) * -1;
-						scrollPosY -= (vslider.outerHeight() / vscrollbar.outerHeight() * 100) * (scrollPosY / 100);
-
-						if (scrollPosY < 0) scrollPosY = 0;
-						if (scrollPosY > (100 - (vslider.outerHeight() / vscrollbar.outerHeight() * 100))) scrollPosY = (100 - (vslider.outerHeight() / vscrollbar.outerHeight() * 100));
-
-						vslider.css({
-							"opacity": 1,
-							"top": scrollPosY + "%",
-							"transition": transition
-						});
-
-						clearTimeout(vscrollbartimeout);
-						vscrollbartimeout = setTimeout (function () {
-							clearTimeout(vscrollbartimeout);
-
-							vslider.css({
-								"opacity": 0
-							});
-						}, (timer + (timer / 4)));
-					}
-				},
-				updateHSliderPosition = function (hslider, transition)  {
-					if (showScroll && hslider.length > 0) {
-						scrollPosX = (posX / (hslider.parent().siblings().outerWidth() - hscrollbar.outerWidth()) * 100) * -1;
-						scrollPosX -= (hslider.outerWidth() / hscrollbar.outerWidth() * 100) * (scrollPosX / 100);
-
-						if (scrollPosX < 0) scrollPosX = 0;
-						if (scrollPosX > (100 - (hslider.outerWidth() / hscrollbar.outerWidth() * 100))) scrollPosX = (100 - (hslider.outerWidth() / hscrollbar.outerWidth() * 100));
-
-						hslider.css({
-							"opacity": 1,
-							"left": scrollPosX + "%",
-							"transition": transition
-						});
-
-						clearTimeout(hscrollbartimeout);
-						hscrollbartimeout = setTimeout (function () {
-							clearTimeout(hscrollbartimeout);
-
-							hslider.css({
-								"opacity": 0
-							});
-						}, (timer + (timer / 4)));
-					}
-				},
-				// New pure JS code
-				_updateVSliderPosition = function (content, transition)  {
-					var vslider = null,
+			var updateVSliderPosition = function (content, transition)  {
+					var hslider = null,
+						vslider = null,
 						vscrollbar = null;
 
 					if (content.length > 1) {
 						Array.prototype.forEach.call(content, function(el, i) {
-							_updateVSliderPosition (el, transition);
+							updateVSliderPosition (el, transition);
 						});
 					} else {
+						hslider = content.parentNode.querySelector(".hslider"),
 						vslider = content.parentNode.querySelector(".vslider"),
 						vscrollbar = content.parentNode.querySelector(".vscrollbar");
 
@@ -140,9 +114,12 @@
 							if (scrollPosY < 0) scrollPosY = 0;
 							else if (scrollPosY > vscrollbar.offsetHeight - vslider.offsetHeight) scrollPosY = vscrollbar.offsetHeight - vslider.offsetHeight;
 
-							vslider.style.opacity = 1;
-							vslider.style.top = scrollPosY + "px";
+							console.log (transition);
+
 							vslider.style.transition = transition;
+							vslider.style.top = scrollPosY + "px";
+							vslider.style.opacity = 1;
+							hslider.style.opacity = 0;
 
 							clearTimeout(vscrollbartimeout);
 							vscrollbartimeout = setTimeout (function () {
@@ -152,15 +129,17 @@
 						}
 					}
 				},
-				_updateHSliderPosition = function (content, transition)  {
-					var hslider = null,
+				updateHSliderPosition = function (content, transition)  {
+					var vslider = null,
+						hslider = null,
 						hscrollbar = null;
 
 					if (content.length > 1) {
 						Array.prototype.forEach.call(content, function(el, i) {
-							_updateHSliderPosition (el, transition);
+							updateHSliderPosition (el, transition);
 						});
 					} else {
+						vslider = content.parentNode.querySelector(".vslider");
 						hslider = content.parentNode.querySelector(".hslider");
 						hscrollbar = content.parentNode.querySelector(".hscrollbar");
 
@@ -170,9 +149,10 @@
 							if (scrollPosX < 0) scrollPosX = 0;
 							else if (scrollPosX > hscrollbar.offsetWidth - hslider.offsetWidth) scrollPosX = hscrollbar.offsetWidth - hslider.offsetWidth;
 
-							hslider.style.opacity = 1;
-							hslider.style.left = scrollPosX + "px";
 							hslider.style.transition = transition;
+							hslider.style.left = scrollPosX + "px";
+							hslider.style.opacity = 1;
+							vslider.style.opacity = 0;
 
 							clearTimeout(vscrollbartimeout);
 							vscrollbartimeout = setTimeout (function () {
@@ -184,31 +164,9 @@
 				};
 			// Update content position
 			var updateContentPosition = function (elem) {
-					elem.css ({
-						"transform": "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)",
-						"transform-origin": originX + "% " + originY + "%",
-						"transition": transition
-					});
-				}, constrainContentPosition = function (child, parent) {
-					// It's on bottom
-					if ((posX + child.outerWidth ()) <= parent.outerWidth ())
-						posX = parent.outerWidth () - child.outerWidth ();
-					if ((posY + child.outerHeight ()) <= parent.outerHeight ())
-						posY = parent.outerHeight () - child.outerHeight ();
-
-					// It's on top
-					if (posX >= 0)
-						posX = 0;
-					if (posY >= 0)
-						posY = 0;
-				},
-				// New pure JS code
-				_updateContentStyle = function (elem) {
-				},
-				_updateContentPosition = function (elem) {
 					if (elem.length > 1) {
 						Array.prototype.forEach.call(elem, function(el, i) {
-							_updateContentPosition (el);
+							updateContentPosition (el);
 						});
 					} else {
 						elem.style.transform = "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)";
@@ -216,7 +174,7 @@
 						elem.style.transition = transition;
 					}
 				},
-				_constrainContentPosition = function (child, parent) {
+				constrainContentPosition = function (child, parent) {
 					if ((posX + child.offsetWidth) <= parent.offsetWidth) posX = parent.offsetWidth - child.offsetWidth;
 					if (posX >= 0) posX = 0;
 					if ((posY + child.offsetHeight) <= parent.offsetHeight) posY = parent.offsetHeight - child.offsetHeight;
@@ -229,209 +187,192 @@
 			// Create scroll bar
 			if (showScroll) {
 				elem.each (function () {
-					var hsliderwidth = ($(this).outerWidth() / ($(this).children ().outerWidth()) * 100),
-						vsliderheight = ($(this).outerHeight() / ($(this).children ().outerHeight()) * 100);
+					var that = this,
+						content = that.querySelector(":not(.scrollbar)"),
+						vsliderheight = (that.offsetHeight / (content.offsetHeight) * 100),
+						hsliderwidth = (that.offsetWidth / (content.offsetWidth) * 100),
+						vslider = "",
+						hslider = "",
+						defaultScrollStyle = function (elem) {
+							elem.style.position = "absolute";
+							elem.style.top = 0;
+							elem.style.opacity = 0;
+							elem.style.background = "rgba(0,0,0,0.48)";
+							elem.style.border = "1px solid rgba(255,255,255,0.48)";
+							elem.style.cursor = "pointer";
+							elem.style.transition = "all 0.256s cubic-bezier(0, 0, 0.5, 1)";
+							elem.style.borderRadius = "8px";
+							elem.style.boxSizing = "border-box";
+						};
 
 					// Constrain the slider size so it won't be to small
-					if (hsliderwidth < 32) hsliderwidth = 32;
 					if (vsliderheight < 32) vsliderheight = 32;
+					if (hsliderwidth < 32) hsliderwidth = 32;
 
 					// Create the scrollsbars
+					that.style.position = "relative";
 					if (vsliderheight < 100) {
-						$(this).append("<div class='scrollbar vscrollbar'><div class='vslider' /></div>").css({
-							"position": "relative"
-						});
-						vscrollbar = $(this).find(".vscrollbar").css({
-							"top": 0,
-							"bottom": 8,
-							"left": "initial",
-							"right": 0,
-							"width": 8
-						});
+						that.innerHTML += "<div class='scrollbar vscrollbar'><div class='vslider'></div></div>";
+
+						vscrollbar = that.querySelector(".vscrollbar");
+						vscrollbar.style.position = "absolute";
+						vscrollbar.style.top = 0;
+						vscrollbar.style.bottom = 8;
+						vscrollbar.style.left = "initial";
+						vscrollbar.style.right = 0;
+						vscrollbar.style.width = 8;
+
+						defaultScrollStyle (vscrollbar.querySelector(".vslider"));
 					}
 					if (hsliderwidth < 100) {
-						$(this).append("<div class='scrollbar hscrollbar'><div class='hslider' /></div>").css({
-							"position": "relative"
-						});
-						hscrollbar = $(this).find(".hscrollbar").css({
-							"position": "absolute",
-							"top": "initial",
-							"bottom": 0,
-							"left": 0,
-							"right": 8,
-							"height": 8
-						});
+						that.innerHTML += "<div class='scrollbar hscrollbar'><div class='hslider'></div></div>";
+
+						hscrollbar = that.querySelector(".hscrollbar");
+						hscrollbar.style.position = "absolute";
+						hscrollbar.style.top = "initial";
+						hscrollbar.style.bottom = 0;
+						hscrollbar.style.left = 0;
+						hscrollbar.style.right = 8;
+						hscrollbar.style.height = 8;
+
+						defaultScrollStyle (hscrollbar.querySelector(".hslider"));
 					}
-					$(this).find(".scrollbar").css({
-						"position": "absolute"
-					}).children().css({
-						"position": "absolute",
-						"top": 0,
-						"background": "rgba(0,0,0,0.48)",
-						"border": "1px solid rgba(255,255,255,0.48)",
-						"border-radius": 8,
-						"opacity": 0,
-						"transition": "all 0.256s cubic-bezier(0, 0, 0.5, 1)",
-						"box-sizing": "border-box",
-						"cursor": "pointer"
-					});
+					// Need to be recall after innerHTML
+					content = that.querySelector(":not(.scrollbar)");
+
+					that.querySelector(".scrollbar").style.position = "absolute";
 
 					// Vertical Slider actions
-					$(this).find(".vslider").css({
-						"top": 0,
-						"left": "initial",
-						"right": 0,
-						"width": 8,
-						"height": vsliderheight + "%",
-					}).hover (function () {
-						var parent = $(this).parent().siblings(),
-							twin = $("[data-twin=" + parent.data("twin") + "]");
+					vslider = that.querySelector(".vslider");
+					if (vslider) {
+						vslider.style.top = 0;
+						vslider.style.left = "initial";
+						vslider.style.right = 0;
+						vslider.style.width = "8px";
+						vslider.style.height = vsliderheight + "%";
 
-						if (twin.length > 0) parent = twin;
-						parent.each(function () {
-							updateVSliderPosition($(this).siblings().children(".vslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
-						});
-						clearTimeout(vscrollbartimeout);
-					}, function () {
-						var parent = $(this).parent().siblings(),
-							twin = $("[data-twin=" + parent.data("twin") + "]");
+						vslider.onmouseover = function () {
+							updateVSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+							clearTimeout(vscrollbartimeout);
+						};
+						vslider.onmouseout = function () {
+							updateVSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+						};
 
-						if (twin.length > 0) parent = twin;
+						$(vslider).hammer().on("dragstart drag dragend tap", function(event) {
+							var percentageScroll = 0;
 
-						clearTimeout(vscrollbartimeout);
-						vscrollbartimeout = setTimeout (function () {
+							if (event.type === "dragstart") {
+								// Touch
+								scrollStartY = event.gesture.center.pageY;
+
+								// Constrain movement
+								scrollPosY = scrollMapY = parseInt(this.offsetTop);
+							}
+							if (event.type === 'drag' || event.type === 'dragend') {
+								// Count movement delta
+								deltaY = -event.gesture.deltaY;
+								// Constrain movement
+								scrollPosY = scrollMapY - deltaY;
+							}
+
+							percentageScroll = scrollPosY / this.parentNode.offsetHeight * 100;
+							posY = percentageScroll / 100 * -content.offsetHeight;
+
+							constrainContentPosition (content, that);
+
+							// Set the transition
+							transition = "all 0s linear";
+
+							// Found out if it have twin
+							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+
+							// Move the scroll bar
+							updateVSliderPosition(content, transition);
 							clearTimeout(vscrollbartimeout);
 
-							parent.each(function () {
-								$(this).siblings().children(".vslider").css({
-									"opacity": 0,
-									"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
-								});
-							});
-						}, timer);
-					}).hammer().on("dragstart drag dragend tap", function(event) {
-						var child = $(this).parent().siblings (":not(.scrollbar)"),
-							parent = child.parent(),
-							percentageScroll = 0;
+							// Move the content
+							updateContentPosition (content);
 
-						if (event.type === "dragstart") {
-							// Touch
-							scrollStartY = event.gesture.center.pageY;
-
-							// Constrain movement
-							scrollPosY = scrollMapY = parseInt($(this).position().top);
-						}
-						if (event.type === 'drag' || event.type === 'dragend') {
-							// Count movement delta
-							deltaY = -event.gesture.deltaY;
-							// Constrain movement
-							scrollPosY = scrollMapY - deltaY;
-						}
-
-						percentageScroll = scrollPosY / $(this).parent().outerHeight () * 100;
-						posY = percentageScroll / 100 * -child.outerHeight ();
-
-						constrainContentPosition (child, parent);
-
-						// Set the transition
-						transition = "all 0s linear";
-
-						// Found out if it have twin
-						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
-						// Move the scroll bar
-						updateVSliderPosition(child.siblings().children(".vslider"), transition);
-						clearTimeout(vscrollbartimeout);
-						// Move the content
-						updateContentPosition (child);
-					});
+							if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
+								event.gesture.preventDefault();
+								event.gesture.stopPropagation();
+							}
+						});
+					}
 
 					// Horizontal Slider actions
-					$(this).find(".hslider").css({
-						"top": 0,
-						"left": 0,
-						"width": hsliderwidth + "%",
-						"height": 8
-					}).hover (function () {
-						var parent = $(this).parent().siblings(),
-							twin = $("[data-twin=" + parent.data("twin") + "]");
+					hslider = that.querySelector(".hslider");
+					if (hslider) {
+						hslider.style.top = 0;
+						hslider.style.left = 0;
+						hslider.style.width = hsliderwidth + "%";
+						hslider.style.height = "8px";
 
-						if (twin.length > 0) parent = twin;
-						parent.each(function () {
-							updateHSliderPosition($(this).siblings().children(".hslider"), "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
-						});
-						clearTimeout(hscrollbartimeout);
-					}, function () {
-						var parent = $(this).parent().siblings(),
-							twin = $("[data-twin=" + parent.data("twin") + "]");
+						hslider.onmouseover = function () {
+							updateHSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+							clearTimeout(hscrollbartimeout);
+						};
+						hslider.onmouseout = function () {
+							updateHSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+						};
+						$(hslider).hammer().on("dragstart drag dragend tap", function(event) {
+							var percentageScroll = 0;
 
-						if (twin.length > 0) parent = twin;
+							if (event.type === "dragstart") {
+								// Touch
+								scrollStartX = event.gesture.center.pageX;
 
-						clearTimeout(hscrollbartimeout);
-						hscrollbartimeout = setTimeout (function () {
+								// Constrain movement
+								scrollPosX = scrollMapX = parseInt(this.offsetLeft);
+							}
+							if (event.type === 'drag' || event.type === 'dragend') {
+								// Count movement delta
+								deltaX = -event.gesture.deltaX;
+								// Constrain movement
+								scrollPosX = scrollMapX - deltaX;
+							}
+
+							percentageScroll = scrollPosX / this.parentNode.offsetWidth * 100;
+							posX = percentageScroll / 100 * -content.offsetWidth;
+
+							constrainContentPosition (content, that);
+
+							// Set the transition
+							transition = "all 0s linear";
+
+							// Found out if it have twin
+							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+
+							// Move the scroll bar
+							updateHSliderPosition(content, transition);
 							clearTimeout(hscrollbartimeout);
 
-							parent.each(function () {
-								$(this).siblings().children(".hslider").css({
-									"opacity": 0,
-									"transition": "all 0.25s cubic-bezier(0, 0, 0.5, 1)"
-								});
-							});
-						}, timer);
-					}).hammer().on("dragstart drag dragend tap", function(event) {
-						var child = $(this).parent().siblings (":not(.scrollbar)"),
-							parent = child.parent(),
-							percentageScroll = 0;
+							// Move the content
+							updateContentPosition (content);
 
-						if (event.type === "dragstart") {
-							// Touch
-							scrollStartX = event.gesture.center.pageX;
-
-							// Constrain movement
-							scrollPosX = scrollMapX = parseInt($(this).position().left);
-						}
-						if (event.type === 'drag' || event.type === 'dragend') {
-							// Count movement delta
-							deltaX = -event.gesture.deltaX;
-							// Constrain movement
-							scrollPosX = scrollMapX - deltaX;
-						}
-
-						percentageScroll = scrollPosX / $(this).parent().outerWidth () * 100;
-						posX = percentageScroll / 100 * -child.outerWidth ();
-
-						constrainContentPosition (child, parent);
-
-						// Set the transition
-						transition = "all 0s linear";
-
-						// Found out if it have twin
-						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
-						// Move the scroll bar
-						updateHSliderPosition(child.siblings().children(".hslider"), transition);
-						clearTimeout(hscrollbartimeout);
-						// Move the content
-						updateContentPosition (child);
-
-						if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
-							event.gesture.preventDefault();
-							event.gesture.stopPropagation();
-						}
-					});
+							if (event.type === "drag" || event.type === "dragstart" || event.type === "dragend") {
+								event.gesture.preventDefault();
+								event.gesture.stopPropagation();
+							}
+						});
+					}
 				});
 			}
 
 			// Assign touch event
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
-				var parent = $(this),
-					child = $(this).children (":not(.scrollbar)");
+				var that = this,
+					content = that.querySelector(":not(.scrollbar)"),
+					isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
+					isHslider = new RegExp('(^| )' + "hslider" + '( |$)', 'gi').test(event.target.className);
 
-				if (!$(event.target).hasClass ("hslider") && !$(event.target).hasClass ("vslider") ) {
+				if (!isVslider && !isHslider) {
 					if (event.type === "dragstart") {
 						// Map
-						matrix = child.css ("transform").split (", ");
-						mapX = parseInt(matrix[4]);
-						mapY = matrix[5].split (")");
-						mapY = parseInt(mapY[0]);
+						matrix = transformExtract (content.style);
+						mapX = matrix[0];
+						mapY = matrix[1];
 
 						// Touch
 						firstX = event.gesture.center.pageX;
@@ -453,32 +394,32 @@
 
 						// Count the viewable boundry
 						if (rubber) {
-							if ((posX + child.outerWidth ()) <= parent.outerWidth ()) {
-								posX = parent.outerWidth () - child.outerWidth ();
+							if ((posX + content.offsetWidth) <= that.offsetWidth) {
+								posX = that.offsetWidth - content.offsetWidth;
 								originX = 100;
-								scaleX = 1 + (deltaX / parent.outerWidth ());
+								scaleX = 1 + (deltaX / that.offsetWidth);
 							}
-							if ((posY + child.outerHeight ()) <= parent.outerHeight ()) {
-								posY = parent.outerHeight () - child.outerHeight ();
+							if ((posY + content.offsetHeight) <= that.offsetHeight) {
+								posY = that.offsetHeight - content.offsetHeight;
 								originY = 100;
-								scaleY = 1 + (deltaY / parent.outerHeight ());
+								scaleY = 1 + (deltaY / that.offsetHeight);
 							}
 
 							if (posX >= 0) {
 								originX = posX = 0;
-								scaleX = 1 - (deltaX / parent.outerWidth ())
+								scaleX = 1 - (deltaX / that.offsetWidth)
 							}
 							if (posY >= 0) {
 								originY = posY = 0;
-								scaleY = 1 - (deltaY / parent.outerHeight ())
+								scaleY = 1 - (deltaY / that.offsetHeight)
 							}
 						}
 
 						// Calling the callbacks
-						if ((posX + child.outerWidth ()) <= parent.outerWidth ())  		onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
-						if ((posY + child.outerHeight ()) <= parent.outerHeight ()) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
-						if (posX >= 0)   												onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
-						if (posY >= 0)  												onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if ((posX + content.offsetWidth) <= that.offsetWidth)  		onReachRight  (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if ((posY + content.offsetHeight) <= that.offsetHeight) 	onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if (posX >= 0)   											onReachLeft   (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
+						if (posY >= 0)  											onReachTop    (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
 
 						// Get the last accelerator
 						acceleratorX = event.gesture.velocityX;
@@ -506,26 +447,14 @@
 						}
 
 						accelerator = Math.round (accelerator * 100) / 100;
-						if (accelerator < 1)
-							transition = "all " + accelerator + "s cubic-bezier(0, 0, 0.5, 1)";
-						else
-							transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
+						if (accelerator < 1) transition = "all " + accelerator + "s cubic-bezier(0, 0, 0.5, 1)";
+						else transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
 
 						// Count the viewable boundry
-						if ((posX + child.outerWidth ()) <= parent.outerWidth ())
-							posX = parent.outerWidth () - child.outerWidth ();
-						if ((posY + child.outerHeight ()) <= parent.outerHeight ())
-							posY = parent.outerHeight () - child.outerHeight ();
+						constrainContentPosition (content, that);
 
-						if (posX >= 0)
-							posX = 0;
-						if (posY >= 0)
-							posY = 0;
-
-						if (child.outerWidth () <= parent.outerWidth ())
-							posX = 0;
-						if (child.outerHeight () <= parent.outerHeight ())
-							posY = 0;
+						if (content.offsetWidth <= that.offsetWidth) posX = 0;
+						if (content.offsetHeight <= that.offsetHeight) posY = 0;
 
 						scaleX = scaleY = 1;
 
@@ -533,10 +462,10 @@
 						ONSWIPE = false;
 					}
 					if (event.type === 'tap') {
-						matrix = child.css ("transform").split (", ");
-						mapX = parseInt(matrix[4]);
-						mapY = matrix[5].split (")");
-						mapY = parseInt(mapY[0]);
+						// Map
+						matrix = transformExtract (content.style);
+						mapX = matrix[0];
+						mapY = matrix[1];
 
 						posX = mapX;
 						posY = mapY;
@@ -550,11 +479,11 @@
 
 					// It's shorter than container
 					if (!allowSmaller) {
-						if (child.outerWidth () <= parent.outerWidth ()) {
+						if (content.offsetWidth <= that.offsetWidth) {
 							originX = posX = 0;
 							scaleX = 1;
 						}
-						if (child.outerHeight () <= parent.outerHeight ()) {
+						if (content.offsetHeight <= that.offsetHeight) {
 							originY = posY = 0;
 							scaleY = 1;
 						}
@@ -572,15 +501,18 @@
 					posX = Math.round (posX);
 					posY = Math.round (posY);
 
+
 					// Found out if it have twin
-					if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+					if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+
 					// Move the scroll bar
 					if (showScroll) {
-						updateVSliderPosition(child.siblings().children(".vslider"), transition);
-						updateHSliderPosition(child.siblings().children(".hslider"), transition);
+						if (deltaY) updateVSliderPosition(content, transition);
+						if (deltaX) updateHSliderPosition(content, transition);
 					}
+
 					// Move the content
-					updateContentPosition(child);
+					updateContentPosition (content);
 
 					onScroll (posX, posY, scaleX, scaleY, originX, originY, transition, event.type);
 
@@ -594,19 +526,12 @@
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
 				var that = this,
-					content = that.querySelector (":not(.scrollbar)");
+					content = that.querySelector(":not(.scrollbar)");
 
 				// Map
-				if (content.style.webkitTransform != "") matrix = content.style.webkitTransform;
-				else if (content.style.MozTransform != "") matrix = content.style.MozTransform;
-				else if (content.style.msTransform != "") matrix = content.style.msTransform;
-				else if (content.style.OTransform != "") matrix = content.style.OTransform;
-				else if (content.style.transform != "") matrix = content.style.transform;
-				matrix += "";
-				matrix = matrix.replace (/\px/g, "");
-				matrix = matrix.split(", ");
-				mapX = parseInt(matrix[0].replace ("translate3d(", ""));
-				mapY = parseInt(matrix[1]);
+				matrix = transformExtract (content.style);
+				mapX = matrix[0];
+				mapY = matrix[1];
 
 				// Count movement delta
 				deltaX = parseInt(event.deltaX);
@@ -705,30 +630,30 @@
 
 				// Move the scroll bar
 				if (showScroll) {
-					if (deltaY) _updateVSliderPosition(content, transition);
-					if (deltaX) _updateHSliderPosition(content, transition);
+					if (deltaY) updateVSliderPosition(content, transition);
+					if (deltaX) updateHSliderPosition(content, transition);
 				}
 
 				// Move the content
-				_updateContentPosition (content);
+				updateContentPosition (content);
 
 				// Prevent element to over scrolled
 				clearTimeout(scrolltimeout);
 				scrolltimeout = setTimeout (function () {
 					// Constrain the position
-					_constrainContentPosition (content, that);
+					constrainContentPosition (content, that);
 
 					// Set the transition
 					transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
 					// Move the scroll bar
 					if (showScroll) {
-						if (deltaY) _updateVSliderPosition(content, transition);
-						if (deltaX) _updateHSliderPosition(content, transition);
+						if (deltaY) updateVSliderPosition(content, transition);
+						if (deltaX) updateHSliderPosition(content, transition);
 					}
 
 					// Move the content
-					_updateContentPosition (content);
+					updateContentPosition (content);
 
 					clearTimeout(scrolltimeout);
 				}, timer);

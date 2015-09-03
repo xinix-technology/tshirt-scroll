@@ -96,7 +96,8 @@
 							});
 						}, (timer + (timer / 4)));
 					}
-				}, updateHSliderPosition = function (hslider, transition)  {
+				},
+				updateHSliderPosition = function (hslider, transition)  {
 					if (showScroll && hslider.length > 0) {
 						scrollPosX = (posX / (hslider.parent().siblings().outerWidth() - hscrollbar.outerWidth()) * 100) * -1;
 						scrollPosX -= (hslider.outerWidth() / hscrollbar.outerWidth() * 100) * (scrollPosX / 100);
@@ -119,6 +120,67 @@
 							});
 						}, (timer + (timer / 4)));
 					}
+				},
+				// New pure JS code
+				_updateVSliderPosition = function (content, transition)  {
+					var vslider = null,
+						vscrollbar = null;
+
+					if (content.length > 1) {
+						Array.prototype.forEach.call(content, function(el, i) {
+							_updateVSliderPosition (el, transition);
+						});
+					} else {
+						vslider = content.parentNode.querySelector(".vslider"),
+						vscrollbar = content.parentNode.querySelector(".vscrollbar");
+
+						if (showScroll && (vslider !== null)) {
+							scrollPosY = -posY / (content.offsetHeight - content.parentNode.offsetHeight) * (vscrollbar.offsetHeight - vslider.offsetHeight);
+
+							if (scrollPosY < 0) scrollPosY = 0;
+							else if (scrollPosY > vscrollbar.offsetHeight - vslider.offsetHeight) scrollPosY = vscrollbar.offsetHeight - vslider.offsetHeight;
+
+							vslider.style.opacity = 1;
+							vslider.style.top = scrollPosY + "px";
+							vslider.style.transition = transition;
+
+							clearTimeout(vscrollbartimeout);
+							vscrollbartimeout = setTimeout (function () {
+								clearTimeout(vscrollbartimeout);
+								vslider.style.opacity = 0;
+							}, (timer + (timer / 4)));
+						}
+					}
+				},
+				_updateHSliderPosition = function (content, transition)  {
+					var hslider = null,
+						hscrollbar = null;
+
+					if (content.length > 1) {
+						Array.prototype.forEach.call(content, function(el, i) {
+							_updateHSliderPosition (el, transition);
+						});
+					} else {
+						hslider = content.parentNode.querySelector(".hslider");
+						hscrollbar = content.parentNode.querySelector(".hscrollbar");
+
+						if (showScroll && (hslider !== null)) {
+							scrollPosX = -posX / (content.offsetWidth - content.parentNode.offsetWidth) * (hscrollbar.offsetWidth - hslider.offsetWidth);
+
+							if (scrollPosX < 0) scrollPosX = 0;
+							else if (scrollPosX > hscrollbar.offsetWidth - hslider.offsetWidth) scrollPosX = hscrollbar.offsetWidth - hslider.offsetWidth;
+
+							hslider.style.opacity = 1;
+							hslider.style.left = scrollPosX + "px";
+							hslider.style.transition = transition;
+
+							clearTimeout(vscrollbartimeout);
+							vscrollbartimeout = setTimeout (function () {
+								clearTimeout(vscrollbartimeout);
+								hslider.style.opacity = 0;
+							}, (timer + (timer / 4)));
+						}
+					}
 				};
 			// Update content position
 			var updateContentPosition = function (elem) {
@@ -139,6 +201,26 @@
 						posX = 0;
 					if (posY >= 0)
 						posY = 0;
+				},
+				// New pure JS code
+				_updateContentStyle = function (elem) {
+				},
+				_updateContentPosition = function (elem) {
+					if (elem.length > 1) {
+						Array.prototype.forEach.call(elem, function(el, i) {
+							_updateContentPosition (el);
+						});
+					} else {
+						elem.style.transform = "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)";
+						elem.style.transformOrigin = originX + "% " + originY + "%";
+						elem.style.transition = transition;
+					}
+				},
+				_constrainContentPosition = function (child, parent) {
+					if ((posX + child.offsetWidth) <= parent.offsetWidth) posX = parent.offsetWidth - child.offsetWidth;
+					if (posX >= 0) posX = 0;
+					if ((posY + child.offsetHeight) <= parent.offsetHeight) posY = parent.offsetHeight - child.offsetHeight;
+					if (posY >= 0) posY = 0;
 				};
 
 			// Assign transform CSS
@@ -511,14 +593,20 @@
 
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
-				var parent = $(this),
-					child = $(this).children (":not(.scrollbar)");
+				var that = this,
+					content = that.querySelector (":not(.scrollbar)");
 
 				// Map
-				matrix = child.css ("transform").split (", ");
-				mapX = parseInt(matrix[4]);
-				mapY = matrix[5].split (")");
-				mapY = parseInt(mapY[0]);
+				if (content.style.webkitTransform != "") matrix = content.style.webkitTransform;
+				else if (content.style.MozTransform != "") matrix = content.style.MozTransform;
+				else if (content.style.msTransform != "") matrix = content.style.msTransform;
+				else if (content.style.OTransform != "") matrix = content.style.OTransform;
+				else if (content.style.transform != "") matrix = content.style.transform;
+				matrix += "";
+				matrix = matrix.replace (/\px/g, "");
+				matrix = matrix.split(", ");
+				mapX = parseInt(matrix[0].replace ("translate3d(", ""));
+				mapY = parseInt(matrix[1]);
 
 				// Count movement delta
 				deltaX = parseInt(event.deltaX);
@@ -539,72 +627,64 @@
 
 				// Count the viewable boundry
 				if (rubber) {
-					// It's on right
-					if ((posX + child.outerWidth ()) <= parent.outerWidth ()) {
-						posX = parent.outerWidth () - child.outerWidth ();
-						originX = 100;
-						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
-						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
-					}
-
 					// It's on bottom
-					if ((posY + child.outerHeight ()) <= parent.outerHeight ()) {
-						posY = parent.outerHeight () - child.outerHeight ();
+					if ((posY + content.offsetHeight) <= that.offsetHeight) {
+						posY = that.offsetHeight - content.offsetHeight;
 						originY = 100;
-						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
+						scaleY = 1 + Math.abs(deltaY / that.offsetHeight);
 						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
-
-					// It's on left
-					if (posX >= 0) {
-						originX = posX = 0;
-						scaleX = 1 + Math.abs(deltaX / parent.outerWidth ());
-						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
-					}
-
 					// It's on top
 					if (posY >= 0) {
 						originY = posY = 0;
-						scaleY = 1 + Math.abs(deltaY / parent.outerHeight ());
+						scaleY = 1 + Math.abs(deltaY / that.offsetHeight);
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
-				} else {
 					// It's on right
-					if ((posX + child.outerWidth ()) <= parent.outerWidth () && scrollHorizontal) {
-						posX -= (1 / (posX * 100));
-						if ((posX + child.outerWidth ()) <= -(parent.outerWidth () * 2) ) posX = -(parent.outerWidth () * 2) - child.outerWidth ();
+					if ((posX + content.offsetWidth) <= that.offsetWidth) {
+						posX = that.offsetWidth - content.offsetWidth;
+						originX = 100;
+						scaleX = 1 + Math.abs(deltaX / that.offsetWidth);
 						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
-
-					// It's on bottom
-					if ((posY + child.outerHeight ()) <= parent.outerHeight () && scrollVertical) {
-						posY -= (1 / (posY * 100));
-						if ((posY + child.outerHeight ()) <= -(parent.outerHeight () * 2) ) posY = -(parent.outerHeight () * 2) - child.outerHeight ();
-						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
-					}
-
 					// It's on left
-					if (posX >= 0 && scrollHorizontal) {
-						posX += (1 / (deltaX * 100));
-						if (posX >= parent.outerWidth ()) posX = parent.outerWidth ();
+					if (posX >= 0) {
+						originX = posX = 0;
+						scaleX = 1 + Math.abs(deltaX / that.offsetWidth);
 						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
-
+				} else {
+					// It's on bottom
+					if ((posY + content.offsetHeight) <= that.offsetHeight && scrollVertical) {
+						posY -= (1 / (posY * 100));
+						if ((posY + content.offsetHeight) <= -(that.offsetHeight * 2) ) posY = -(that.offsetHeight * 2) - content.offsetHeight;
+						onReachBottom (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
+					}
 					// It's on top
-					if (posY >= 0 && scrollVertical) {
-						posY += (1 / (deltaY * 100));
-						if (posY >= parent.outerHeight ()) posY = parent.outerHeight ();
+					if (posY > 0 && scrollVertical) {
+						if (posY >= that.offsetHeight) posY = that.offsetHeight;
 						onReachTop (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
+					}
+					// It's on right
+					if ((posX + content.offsetWidth) <= that.offsetWidth && scrollHorizontal) {
+						posX -= (1 / (posX * 100));
+						if ((posX + content.offsetWidth) <= -(that.offsetWidth * 2) ) posX = -(that.offsetWidth * 2) - content.offsetWidth;
+						onReachRight (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
+					}
+					// It's on left
+					if (posX > 0 && scrollHorizontal) {
+						if (posX >= that.offsetWidth) posX = that.offsetWidth;
+						onReachLeft (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");
 					}
 				}
 
 				// It's shorter than container
 				if (!allowSmaller) {
-					if (child.outerWidth () <= parent.outerWidth ()) {
+					if (content.offsetWidth <= that.offsetWidth) {
 						originX = posX = 0;
 						scaleX = 1;
 					}
-					if (child.outerHeight () <= parent.outerHeight ()) {
+					if (content.offsetHeight <= that.offsetHeight) {
 						originY = posY = 0;
 						scaleY = 1;
 					}
@@ -621,40 +701,36 @@
 				}
 
 				// Found out if it have twin
-				if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
+				if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
 
 				// Move the scroll bar
 				if (showScroll) {
-					if (deltaY) updateVSliderPosition(child.siblings().children(".vslider"), transition);
-					if (deltaX) updateHSliderPosition(child.siblings().children(".hslider"), transition);
+					if (deltaY) _updateVSliderPosition(content, transition);
+					if (deltaX) _updateHSliderPosition(content, transition);
 				}
 
 				// Move the content
-				updateContentPosition (child);
+				_updateContentPosition (content);
 
 				// Prevent element to over scrolled
 				clearTimeout(scrolltimeout);
 				scrolltimeout = setTimeout (function () {
+					// Constrain the position
+					_constrainContentPosition (content, that);
+
+					// Set the transition
+					transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
+
+					// Move the scroll bar
+					if (showScroll) {
+						if (deltaY) _updateVSliderPosition(content, transition);
+						if (deltaX) _updateHSliderPosition(content, transition);
+					}
+
+					// Move the content
+					_updateContentPosition (content);
+
 					clearTimeout(scrolltimeout);
-
-					parent.each(function (){
-						constrainContentPosition (child, parent);
-
-						// Set the transition
-						transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-
-						// Found out if it have twin
-						if (child.data("twin")) child = $('[data-twin=' + child.data("twin") + ']');
-
-						// Move the scroll bar
-						if (showScroll) {
-							if (deltaY) updateVSliderPosition(child.siblings().children(".vslider"), transition);
-							if (deltaX) updateHSliderPosition(child.siblings().children(".hslider"), transition);
-						}
-
-						// Move the content
-						updateContentPosition (child);
-					});
 				}, timer);
 
 				onScroll (posX, posY, scaleX, scaleY, originX, originY, transition, "mousescroll");

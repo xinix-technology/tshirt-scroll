@@ -60,7 +60,7 @@
 				transition = "";
 			// Current item
 			var elem = $(this).parent (),
-				timer = 512;
+				timer = 768;
 			// Timestamp
 			var timestamp;
 			// Scroll element,
@@ -94,17 +94,24 @@
 				return [mapX, mapY];
 			};
 			// Move the vslider
-			var updateVSliderPosition = function (content, transition)  {
-					var hslider = null,
-						vslider = null,
+			var updateVSliderPosition = function (content)  {
+					var vslider = null,
 						vscrollbar = null;
 
 					if (content.length > 1) {
 						Array.prototype.forEach.call(content, function(el, i) {
-							updateVSliderPosition (el, transition);
+							updateVSliderPosition (el);
 						});
+
+						clearTimeout(vscrollbartimeout);
+						vscrollbartimeout = setTimeout (function () {
+							clearTimeout(vscrollbartimeout);
+							Array.prototype.forEach.call(content, function(el, i) {
+								if (el.parentNode.querySelector(".vslider"))
+									el.parentNode.querySelector(".vslider").style.opacity = 0;
+							});
+						}, (timer + (timer / 4)));
 					} else {
-						hslider = content.parentNode.querySelector(".hslider"),
 						vslider = content.parentNode.querySelector(".vslider"),
 						vscrollbar = content.parentNode.querySelector(".vscrollbar");
 
@@ -114,12 +121,9 @@
 							if (scrollPosY < 0) scrollPosY = 0;
 							else if (scrollPosY > vscrollbar.offsetHeight - vslider.offsetHeight) scrollPosY = vscrollbar.offsetHeight - vslider.offsetHeight;
 
-							console.log (transition);
-
 							vslider.style.transition = transition;
 							vslider.style.top = scrollPosY + "px";
 							vslider.style.opacity = 1;
-							hslider.style.opacity = 0;
 
 							clearTimeout(vscrollbartimeout);
 							vscrollbartimeout = setTimeout (function () {
@@ -129,17 +133,24 @@
 						}
 					}
 				},
-				updateHSliderPosition = function (content, transition)  {
-					var vslider = null,
-						hslider = null,
+				updateHSliderPosition = function (content)  {
+					var hslider = null,
 						hscrollbar = null;
 
 					if (content.length > 1) {
 						Array.prototype.forEach.call(content, function(el, i) {
-							updateHSliderPosition (el, transition);
+							updateHSliderPosition (el);
 						});
+
+						clearTimeout(hscrollbartimeout);
+						hscrollbartimeout = setTimeout (function () {
+							clearTimeout(hscrollbartimeout);
+							Array.prototype.forEach.call(content, function(el, i) {
+								if (el.parentNode.querySelector(".hslider"))
+									el.parentNode.querySelector(".hslider").style.opacity = 0;
+							});
+						}, (timer + (timer / 4)));
 					} else {
-						vslider = content.parentNode.querySelector(".vslider");
 						hslider = content.parentNode.querySelector(".hslider");
 						hscrollbar = content.parentNode.querySelector(".hscrollbar");
 
@@ -152,11 +163,10 @@
 							hslider.style.transition = transition;
 							hslider.style.left = scrollPosX + "px";
 							hslider.style.opacity = 1;
-							vslider.style.opacity = 0;
 
-							clearTimeout(vscrollbartimeout);
-							vscrollbartimeout = setTimeout (function () {
-								clearTimeout(vscrollbartimeout);
+							clearTimeout(hscrollbartimeout);
+							hscrollbartimeout = setTimeout (function () {
+								clearTimeout(hscrollbartimeout);
 								hslider.style.opacity = 0;
 							}, (timer + (timer / 4)));
 						}
@@ -170,8 +180,20 @@
 						});
 					} else {
 						elem.style.transform = "translate3d(" + posX + "px," + posY + "px,0) scale3d(" + scaleX + "," + scaleY + ",1)";
+						elem.style.webkitTransform = elem.style.transform;
+						elem.style.mozTransform = elem.style.transform;
+						elem.style.msTransform = elem.style.transform;
+						elem.style.oTransform = elem.style.transform;
 						elem.style.transformOrigin = originX + "% " + originY + "%";
+						elem.style.webkitTransformOrigin = elem.style.transformOrigin;
+						elem.style.mozTransformOrigin = elem.style.transformOrigin;
+						elem.style.msTransformOrigin = elem.style.transformOrigin;
+						elem.style.oTransformOrigin = elem.style.transformOrigin;
 						elem.style.transition = transition;
+						elem.style.webkitTransition = transition;
+						elem.style.mozTransition = transition;
+						elem.style.msTransition = transition;
+						elem.style.oTransition = transition;
 					}
 				},
 				constrainContentPosition = function (child, parent) {
@@ -252,11 +274,12 @@
 						vslider.style.height = vsliderheight + "%";
 
 						vslider.onmouseover = function () {
-							updateVSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+							transition = "opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
+							updateVSliderPosition(content);
 							clearTimeout(vscrollbartimeout);
 						};
 						vslider.onmouseout = function () {
-							updateVSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+							updateVSliderPosition(content);
 						};
 
 						$(vslider).hammer().on("dragstart drag dragend tap", function(event) {
@@ -282,13 +305,13 @@
 							constrainContentPosition (content, that);
 
 							// Set the transition
-							transition = "all 0s linear";
+							transition = "all 0s linear, opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
 							// Found out if it have twin
 							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
 
 							// Move the scroll bar
-							updateVSliderPosition(content, transition);
+							updateVSliderPosition(content);
 							clearTimeout(vscrollbartimeout);
 
 							// Move the content
@@ -310,6 +333,7 @@
 						hslider.style.height = "8px";
 
 						hslider.onmouseover = function () {
+							transition = "opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
 							updateHSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
 							clearTimeout(hscrollbartimeout);
 						};
@@ -345,7 +369,7 @@
 							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
 
 							// Move the scroll bar
-							updateHSliderPosition(content, transition);
+							updateHSliderPosition(content);
 							clearTimeout(hscrollbartimeout);
 
 							// Move the content
@@ -474,7 +498,7 @@
 
 						originX = originY = 0;
 
-						transition = "all 0s cubic-bezier(0, 0, 0.5, 1)";
+						transition = "all 0.512s cubic-bezier(0, 0, 0.5, 1)";
 					}
 
 					// It's shorter than container
@@ -507,8 +531,8 @@
 
 					// Move the scroll bar
 					if (showScroll) {
-						if (deltaY) updateVSliderPosition(content, transition);
-						if (deltaX) updateHSliderPosition(content, transition);
+						if (deltaY) updateVSliderPosition(content);
+						if (deltaX) updateHSliderPosition(content);
 					}
 
 					// Move the content
@@ -526,7 +550,9 @@
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
 				var that = this,
-					content = that.querySelector(":not(.scrollbar)");
+					content = that.querySelector(":not(.scrollbar)"),
+					lastDeltaX = 0,
+					lastDeltaY = 0;
 
 				// Map
 				matrix = transformExtract (content.style);
@@ -534,11 +560,8 @@
 				mapY = matrix[1];
 
 				// Count movement delta
-				deltaX = parseInt(event.deltaX);
-				deltaY = parseInt(event.deltaY);
-
-				if (deltaX === 0) deltaX = 1;
-				if (deltaY === 0) deltaY = 1;
+				lastDeltaX = Math.abs(deltaX = parseInt(event.deltaX));
+				lastDeltaY = Math.abs(deltaY = parseInt(event.deltaY));
 
 				if (Math.abs(deltaX) > Math.abs(deltaY)) deltaY = 0;
 				else if (Math.abs(deltaX) < Math.abs(deltaY)) deltaX = 0;
@@ -548,7 +571,7 @@
 				posX = (mapX -= (deltaX * 1));
 				posY = (mapY -= (deltaY * -1));
 
-				transition = "all 0s linear";
+				transition = "all 0s linear, opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
 				// Count the viewable boundry
 				if (rubber) {
@@ -630,8 +653,8 @@
 
 				// Move the scroll bar
 				if (showScroll) {
-					if (deltaY) updateVSliderPosition(content, transition);
-					if (deltaX) updateHSliderPosition(content, transition);
+					if (deltaY) updateVSliderPosition(content);
+					if (deltaX) updateHSliderPosition(content);
 				}
 
 				// Move the content
@@ -645,12 +668,6 @@
 
 					// Set the transition
 					transition = "all 0.25s cubic-bezier(0, 0, 0.5, 1)";
-
-					// Move the scroll bar
-					if (showScroll) {
-						if (deltaY) updateVSliderPosition(content, transition);
-						if (deltaX) updateHSliderPosition(content, transition);
-					}
 
 					// Move the content
 					updateContentPosition (content);

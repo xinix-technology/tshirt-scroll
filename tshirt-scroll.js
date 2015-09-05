@@ -273,7 +273,9 @@
 					// Need to be recall after innerHTML
 					content = that.querySelector(":not(.scrollbar)");
 
-					that.querySelector(".scrollbar").style.position = "absolute";
+					Array.prototype.forEach.call(that.querySelectorAll(".scrollbar"), function(el, i) {
+						el.style.position = "absolute";
+					});
 
 					// Vertical Slider actions
 					vslider = that.querySelector(".vslider");

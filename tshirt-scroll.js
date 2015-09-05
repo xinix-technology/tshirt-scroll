@@ -122,7 +122,11 @@
 							else if (scrollPosY > vscrollbar.offsetHeight - vslider.offsetHeight) scrollPosY = vscrollbar.offsetHeight - vslider.offsetHeight;
 
 							vslider.style.transition = transition;
-							vslider.style.top = scrollPosY + "px";
+							vslider.style.transform = "translate3d(0px," + scrollPosY + "px,0)";
+							vslider.style.webkitTransform = vslider.style.transform;
+							vslider.style.mozTransform = vslider.style.transform;
+							vslider.style.msTransform = vslider.style.transform;
+							vslider.style.oTransform = vslider.style.transform;
 							vslider.style.opacity = 1;
 
 							clearTimeout(vscrollbartimeout);
@@ -161,7 +165,11 @@
 							else if (scrollPosX > hscrollbar.offsetWidth - hslider.offsetWidth) scrollPosX = hscrollbar.offsetWidth - hslider.offsetWidth;
 
 							hslider.style.transition = transition;
-							hslider.style.left = scrollPosX + "px";
+							hslider.style.transform = "translate3d(" + scrollPosX + "px,0px,0)";
+							hslider.style.webkitTransform = hslider.style.transform;
+							hslider.style.mozTransform = hslider.style.transform;
+							hslider.style.msTransform = hslider.style.transform;
+							hslider.style.oTransform = hslider.style.transform;
 							hslider.style.opacity = 1;
 
 							clearTimeout(hscrollbartimeout);
@@ -219,12 +227,15 @@
 							elem.style.position = "absolute";
 							elem.style.top = 0;
 							elem.style.opacity = 0;
-							elem.style.background = "rgba(0,0,0,0.48)";
-							elem.style.border = "1px solid rgba(255,255,255,0.48)";
+							elem.style.background = "#666";
+							elem.style.border = "1px solid #ccc";
 							elem.style.cursor = "pointer";
 							elem.style.transition = "all 0.256s cubic-bezier(0, 0, 0.5, 1)";
-							elem.style.borderRadius = "8px";
 							elem.style.boxSizing = "border-box";
+							elem.style.webkitBoxSizing = elem.style.boxSizing;
+							elem.style.mozBoxSizing = elem.style.boxSizing;
+							elem.style.msBoxSizing = elem.style.boxSizing;
+							elem.style.oBoxSizing = elem.style.boxSizing;
 						};
 
 					// Constrain the slider size so it won't be to small
@@ -238,11 +249,11 @@
 
 						vscrollbar = that.querySelector(".vscrollbar");
 						vscrollbar.style.position = "absolute";
-						vscrollbar.style.top = 0;
-						vscrollbar.style.bottom = 8;
+						vscrollbar.style.top = "8px";
+						vscrollbar.style.bottom = "8px";
 						vscrollbar.style.left = "initial";
 						vscrollbar.style.right = 0;
-						vscrollbar.style.width = 8;
+						vscrollbar.style.width = "8px";
 
 						defaultScrollStyle (vscrollbar.querySelector(".vslider"));
 					}
@@ -253,9 +264,9 @@
 						hscrollbar.style.position = "absolute";
 						hscrollbar.style.top = "initial";
 						hscrollbar.style.bottom = 0;
-						hscrollbar.style.left = 0;
-						hscrollbar.style.right = 8;
-						hscrollbar.style.height = 8;
+						hscrollbar.style.left = "8px";
+						hscrollbar.style.right = "8px";
+						hscrollbar.style.height = "8px";
 
 						defaultScrollStyle (hscrollbar.querySelector(".hslider"));
 					}
@@ -290,7 +301,7 @@
 								scrollStartY = event.gesture.center.pageY;
 
 								// Constrain movement
-								scrollPosY = scrollMapY = parseInt(this.offsetTop);
+								scrollPosY = scrollMapY = transformExtract (this.style)[1];
 							}
 							if (event.type === 'drag' || event.type === 'dragend') {
 								// Count movement delta
@@ -348,7 +359,7 @@
 								scrollStartX = event.gesture.center.pageX;
 
 								// Constrain movement
-								scrollPosX = scrollMapX = parseInt(this.offsetLeft);
+								scrollPosX = scrollMapX = transformExtract (this.style)[0];
 							}
 							if (event.type === 'drag' || event.type === 'dragend') {
 								// Count movement delta

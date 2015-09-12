@@ -60,6 +60,8 @@
 				transition = "";
 			// Current item
 			var elem = $(this).parent (),
+				that = this.parentNode,
+				content = this,
 				timer = 768;
 			// Timestamp
 			var timestamp;
@@ -209,17 +211,41 @@
 					if (posX >= 0) posX = 0;
 					if ((posY + child.offsetHeight) <= parent.offsetHeight) posY = parent.offsetHeight - child.offsetHeight;
 					if (posY >= 0) posY = 0;
+				},
+				updateScrollbarSize = function (child, parent) {
+					var vslider = child.parentNode.querySelector(".vslider"),
+						hslider = child.parentNode.querySelector(".hslider"),
+						vsliderheight = 0,
+						hsliderwidth = 0;
+
+					if (parent.offsetHeight < child.offsetHeight) {
+						vsliderheight = parent.offsetHeight / child.offsetHeight * 100;
+						vslider.style.height = vsliderheight + "%";
+						vslider.style.display = "block";
+					} else {
+						vslider.style.display = "none";
+					}
+					if (parent.offsetWidth < child.offsetWidth) {
+						hsliderwidth = parent.offsetWidth / child.offsetWidth * 100;
+						hslider.style.width = hsliderwidth + "%";
+						hslider.style.display = "block";
+					} else {
+						hslider.style.display = "none";
+					}
 				};
 
 			// Assign transform CSS
-			elem.children ().css ("transform", "translate3d(0,0,0)");
+			content.style.transform = "translate3d(0,0,0)";
+			content.style.webkitTransform = content.style.transform;
+			content.style.mozTransform = content.style.transform;
+			content.style.msTransform = content.style.transform;
+			content.style.oTransform = content.style.transform;
 
 			// Create scroll bar
+			this.showScroll = showScroll;
 			if (showScroll) {
 				elem.each (function () {
-					var that = this,
-						content = that.querySelector(":not(.scrollbar)"),
-						vsliderheight = (that.offsetHeight / (content.offsetHeight) * 100),
+					var vsliderheight = (that.offsetHeight / (content.offsetHeight) * 100),
 						hsliderwidth = (that.offsetWidth / (content.offsetWidth) * 100),
 						vslider = "",
 						hslider = "",
@@ -242,9 +268,14 @@
 					if (vsliderheight < 32) vsliderheight = 32;
 					if (hsliderwidth < 32) hsliderwidth = 32;
 
+					// If undefined just make it 100
+					if (!vsliderheight) vsliderheight = 100;
+					if (!hsliderwidth) hsliderwidth = 100;
+
 					// Create the scrollsbars
 					that.style.position = "relative";
-					if (vsliderheight < 100) {
+
+					if (vsliderheight <= 100) {
 						that.innerHTML += "<div class='scrollbar vscrollbar'><div class='vslider'></div></div>";
 
 						vscrollbar = that.querySelector(".vscrollbar");
@@ -257,7 +288,7 @@
 
 						defaultScrollStyle (vscrollbar.querySelector(".vslider"));
 					}
-					if (hsliderwidth < 100) {
+					if (hsliderwidth <= 100) {
 						that.innerHTML += "<div class='scrollbar hscrollbar'><div class='hslider'></div></div>";
 
 						hscrollbar = that.querySelector(".hscrollbar");
@@ -289,6 +320,7 @@
 						vslider.onmouseover = function () {
 							transition = "opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
 							updateVSliderPosition(content);
+							updateScrollbarSize(content,that);
 							clearTimeout(vscrollbartimeout);
 						};
 						vslider.onmouseout = function () {
@@ -347,7 +379,8 @@
 
 						hslider.onmouseover = function () {
 							transition = "opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
-							updateHSliderPosition(content, "all 0.25s cubic-bezier(0, 0, 0.5, 1)");
+							updateHSliderPosition(content);
+							updateScrollbarSize(content,that);
 							clearTimeout(hscrollbartimeout);
 						};
 						hslider.onmouseout = function () {
@@ -399,9 +432,7 @@
 
 			// Assign touch event
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
-				var that = this,
-					content = that.querySelector(":not(.scrollbar)"),
-					isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
+				var isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
 					isHslider = new RegExp('(^| )' + "hslider" + '( |$)', 'gi').test(event.target.className);
 
 				if (!isVslider && !isHslider) {
@@ -418,6 +449,8 @@
 						// Constrain movement
 						posX = mapX;
 						posY = mapY;
+
+						updateScrollbarSize (content, that);
 					}
 					if (event.type === 'drag') {
 						// Make a status no element can't be tap
@@ -562,9 +595,7 @@
 
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
-				var that = this,
-					content = that.querySelector(":not(.scrollbar)"),
-					lastDeltaX = 0,
+				var lastDeltaX = 0,
 					lastDeltaY = 0;
 
 				// Map
@@ -670,6 +701,9 @@
 					if (deltaX) updateHSliderPosition(content);
 				}
 
+				// Update the scrollbar size to it's content
+				updateScrollbarSize (content, that);
+
 				// Move the content
 				updateContentPosition (content);
 
@@ -693,6 +727,5 @@
 				event.preventDefault();
 			});
 		});
-
 	}
 }(jQuery, window, document));

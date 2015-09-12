@@ -26,6 +26,8 @@
 			settings = $.extend({}, defaults, options);
 
 		this.each(function () {
+			var isTouch = new RegExp('(^| )touch( |$)', 'gi').test(document.querySelector("html").className),
+				scrollSize = (isTouch) ? "4px" : "8px";
 			// Get params
 			var rubber = settings.rubber,
 				scrollVertical = settings.scrollVertical,
@@ -59,9 +61,9 @@
 				velocity = 0,
 				transition = "";
 			// Current item
-			var elem = $(this).parent (),
-				that = this.parentNode,
-				content = this,
+			var content = this,
+				that = content.parentNode,
+				elem = $(that),
 				timer = 768;
 			// Timestamp
 			var timestamp;
@@ -80,20 +82,24 @@
 					mapX = 0,
 					mapY = 0;
 
-				if (style.webkitTransform != "") matrix = style.webkitTransform;
-				else if (style.MozTransform != "") matrix = style.MozTransform;
-				else if (style.msTransform != "") matrix = style.msTransform;
-				else if (style.OTransform != "") matrix = style.OTransform;
-				else if (style.transform != "") matrix = style.transform;
+				if (style) {
+					if (style.webkitTransform != "") matrix = style.webkitTransform;
+					else if (style.MozTransform != "") matrix = style.MozTransform;
+					else if (style.msTransform != "") matrix = style.msTransform;
+					else if (style.OTransform != "") matrix = style.OTransform;
+					else if (style.transform != "") matrix = style.transform;
 
-				matrix += "";
-				matrix = matrix.replace (/\px/g, "");
-				matrix = matrix.split(", ");
+					matrix += "";
+					matrix = matrix.replace (/\px/g, "");
+					matrix = matrix.split(", ");
 
-				mapX = parseInt(matrix[0].replace ("translate3d(", ""));
-				mapY = parseInt(matrix[1]);
+					mapX = parseInt(matrix[0].replace ("translate3d(", ""));
+					mapY = parseInt(matrix[1]);
 
-				return [mapX, mapY];
+					return [mapX, mapY];
+				} else {
+					return [0, 0];
+				}
 			};
 			// Move the vslider
 			var updateVSliderPosition = function (content)  {
@@ -213,24 +219,29 @@
 					if (posY >= 0) posY = 0;
 				},
 				updateScrollbarSize = function (child, parent) {
-					var vslider = child.parentNode.querySelector(".vslider"),
-						hslider = child.parentNode.querySelector(".hslider"),
+					var vslider = parent.querySelector(".vslider"),
+						hslider = parent.querySelector(".hslider"),
 						vsliderheight = 0,
 						hsliderwidth = 0;
 
-					if (parent.offsetHeight < child.offsetHeight) {
-						vsliderheight = parent.offsetHeight / child.offsetHeight * 100;
-						vslider.style.height = vsliderheight + "%";
-						vslider.style.display = "block";
-					} else {
-						vslider.style.display = "none";
+					if (vslider) {
+						if (parent.offsetHeight < child.offsetHeight) {
+							vsliderheight = parent.offsetHeight / child.offsetHeight * 100;
+							vslider.style.height = vsliderheight + "%";
+							vslider.style.display = "block";
+						} else {
+							vslider.style.display = "none";
+						}
 					}
-					if (parent.offsetWidth < child.offsetWidth) {
-						hsliderwidth = parent.offsetWidth / child.offsetWidth * 100;
-						hslider.style.width = hsliderwidth + "%";
-						hslider.style.display = "block";
-					} else {
-						hslider.style.display = "none";
+
+					if (hslider) {
+						if (parent.offsetWidth < child.offsetWidth) {
+							hsliderwidth = parent.offsetWidth / child.offsetWidth * 100;
+							hslider.style.width = hsliderwidth + "%";
+							hslider.style.display = "block";
+						} else {
+							hslider.style.display = "none";
+						}
 					}
 				};
 
@@ -245,7 +256,9 @@
 			this.showScroll = showScroll;
 			if (showScroll) {
 				elem.each (function () {
-					var vsliderheight = (that.offsetHeight / (content.offsetHeight) * 100),
+					var that = this,
+						content = that.querySelector(":not(.scrollbar)"),
+						vsliderheight = (that.offsetHeight / (content.offsetHeight) * 100),
 						hsliderwidth = (that.offsetWidth / (content.offsetWidth) * 100),
 						vslider = "",
 						hslider = "",
@@ -280,11 +293,11 @@
 
 						vscrollbar = that.querySelector(".vscrollbar");
 						vscrollbar.style.position = "absolute";
-						vscrollbar.style.top = "8px";
-						vscrollbar.style.bottom = "8px";
+						vscrollbar.style.top = scrollSize;
+						vscrollbar.style.bottom = scrollSize;
 						vscrollbar.style.left = "initial";
 						vscrollbar.style.right = 0;
-						vscrollbar.style.width = "8px";
+						vscrollbar.style.width = scrollSize;
 
 						defaultScrollStyle (vscrollbar.querySelector(".vslider"));
 					}
@@ -295,9 +308,9 @@
 						hscrollbar.style.position = "absolute";
 						hscrollbar.style.top = "initial";
 						hscrollbar.style.bottom = 0;
-						hscrollbar.style.left = "8px";
-						hscrollbar.style.right = "8px";
-						hscrollbar.style.height = "8px";
+						hscrollbar.style.left = scrollSize;
+						hscrollbar.style.right = scrollSize;
+						hscrollbar.style.height = scrollSize;
 
 						defaultScrollStyle (hscrollbar.querySelector(".hslider"));
 					}
@@ -314,7 +327,7 @@
 						vslider.style.top = 0;
 						vslider.style.left = "initial";
 						vslider.style.right = 0;
-						vslider.style.width = "8px";
+						vslider.style.width = scrollSize;
 						vslider.style.height = vsliderheight + "%";
 
 						vslider.onmouseover = function () {
@@ -375,7 +388,7 @@
 						hslider.style.top = 0;
 						hslider.style.left = 0;
 						hslider.style.width = hsliderwidth + "%";
-						hslider.style.height = "8px";
+						hslider.style.height = scrollSize;
 
 						hslider.onmouseover = function () {
 							transition = "opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
@@ -432,7 +445,9 @@
 
 			// Assign touch event
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
-				var isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
+				var that = this,
+					content = that.querySelector(":not(.scrollbar)"),
+					isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
 					isHslider = new RegExp('(^| )' + "hslider" + '( |$)', 'gi').test(event.target.className);
 
 				if (!isVslider && !isHslider) {
@@ -595,7 +610,9 @@
 
 			// Assign Mouse Scroll
 			elem.on('mousewheel', function (event) {
-				var lastDeltaX = 0,
+				var that = this,
+					content = that.querySelector(":not(.scrollbar)"),
+					lastDeltaX = 0,
 					lastDeltaY = 0;
 
 				// Map

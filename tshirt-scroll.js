@@ -285,6 +285,10 @@
 					if (!vsliderheight) vsliderheight = 100;
 					if (!hsliderwidth) hsliderwidth = 100;
 
+					// If the content havent have a height;
+					if (!content.offsetHeight) vsliderheight = 0;
+					if (!content.offsetWidth) hsliderwidth = 0;
+
 					// Create the scrollsbars
 					that.style.position = "relative";
 

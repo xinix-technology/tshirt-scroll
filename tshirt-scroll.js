@@ -1,14 +1,14 @@
+"use strict";
+
+// Constant
+window.ONSWIPE = false;
+
+// Global variable
+window.scrolltimeout = null;
+window.vscrollbartimeout =  null;
+window.hscrollbartimeout =  null;
+
 (function ($, window, document) {
-	"use strict";
-
-	// Constant
-	window.ONSWIPE = false;
-
-	// Global variable
-	window.scrolltimeout = null;
-	window.vscrollbartimeout =  null;
-	window.hscrollbartimeout =  null;
-
 	$.fn.scroll = function (options) {
 		// Default Settings
 		var defaults = {
@@ -17,16 +17,16 @@
 				scrollHorizontal: false,
 				allowSmaller: false,
 				showScroll: true,
-				onScroll: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
-				onReachTop: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
-				onReachBottom: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
-				onReachLeft: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {},
-				onReachRight: function (posX, posY, scaleX, scaleY, originX, originY, transition, state) {}
+				onScroll: function () {},
+				onReachTop: function () {},
+				onReachBottom: function () {},
+				onReachLeft: function () {},
+				onReachRight: function () {}
 			},
 			settings = $.extend({}, defaults, options);
 
 		this.each(function () {
-			var isTouch = new RegExp('(^| )touch( |$)', 'gi').test(document.querySelector("html").className),
+			var isTouch = new RegExp("(^| )touch( |$)", "gi").test(document.querySelector("html").className),
 				scrollSize = (isTouch) ? "4px" : "8px";
 			// Get params
 			var rubber = settings.rubber,
@@ -42,7 +42,7 @@
 			// Determine the map first position
 			var matrix = 0,
 				mapX = 0,
-				mapY = 0
+				mapY = 0;
 			// Save the first touch positon
 			var firstX = 0,
 				firstY = 0,
@@ -58,7 +58,6 @@
 			var acceleratorX = 0,
 				acceleratorY = 0,
 				accelerator = 0,
-				velocity = 0,
 				transition = "";
 			// Current item
 			var content = this,
@@ -83,11 +82,11 @@
 					mapY = 0;
 
 				if (style) {
-					if (style.webkitTransform != "") matrix = style.webkitTransform;
-					else if (style.MozTransform != "") matrix = style.MozTransform;
-					else if (style.msTransform != "") matrix = style.msTransform;
-					else if (style.OTransform != "") matrix = style.OTransform;
-					else if (style.transform != "") matrix = style.transform;
+					if (style.webkitTransform !== "") matrix = style.webkitTransform;
+					else if (style.MozTransform !== "") matrix = style.MozTransform;
+					else if (style.msTransform !== "") matrix = style.msTransform;
+					else if (style.OTransform !== "") matrix = style.OTransform;
+					else if (style.transform !== "") matrix = style.transform;
 
 					matrix += "";
 					matrix = matrix.replace (/\px/g, "");
@@ -107,20 +106,20 @@
 						vscrollbar = null;
 
 					if (content.length > 1) {
-						Array.prototype.forEach.call(content, function(el, i) {
+						Array.prototype.forEach.call(content, function(el) {
 							updateVSliderPosition (el);
 						});
 
 						clearTimeout(vscrollbartimeout);
 						vscrollbartimeout = setTimeout (function () {
 							clearTimeout(vscrollbartimeout);
-							Array.prototype.forEach.call(content, function(el, i) {
+							Array.prototype.forEach.call(content, function(el) {
 								if (el.parentNode.querySelector(".vslider"))
 									el.parentNode.querySelector(".vslider").style.opacity = 0;
 							});
 						}, (timer + (timer / 4)));
 					} else {
-						vslider = content.parentNode.querySelector(".vslider"),
+						vslider = content.parentNode.querySelector(".vslider");
 						vscrollbar = content.parentNode.querySelector(".vscrollbar");
 
 						if (showScroll && (vslider !== null)) {
@@ -150,14 +149,14 @@
 						hscrollbar = null;
 
 					if (content.length > 1) {
-						Array.prototype.forEach.call(content, function(el, i) {
+						Array.prototype.forEach.call(content, function(el) {
 							updateHSliderPosition (el);
 						});
 
 						clearTimeout(hscrollbartimeout);
 						hscrollbartimeout = setTimeout (function () {
 							clearTimeout(hscrollbartimeout);
-							Array.prototype.forEach.call(content, function(el, i) {
+							Array.prototype.forEach.call(content, function(el) {
 								if (el.parentNode.querySelector(".hslider"))
 									el.parentNode.querySelector(".hslider").style.opacity = 0;
 							});
@@ -191,7 +190,7 @@
 			// Update content position
 			var updateContentPosition = function (elem) {
 					if (elem.length > 1) {
-						Array.prototype.forEach.call(elem, function(el, i) {
+						Array.prototype.forEach.call(elem, function(el) {
 							updateContentPosition (el);
 						});
 					} else {
@@ -293,7 +292,7 @@
 					that.style.position = "relative";
 
 					if (vsliderheight <= 100) {
-						that.innerHTML += "<div class='scrollbar vscrollbar'><div class='vslider'></div></div>";
+						that.insertAdjacentHTML("beforeend", "<div class='scrollbar vscrollbar'><div class='vslider'></div></div>");
 
 						vscrollbar = that.querySelector(".vscrollbar");
 						vscrollbar.style.position = "absolute";
@@ -306,7 +305,7 @@
 						defaultScrollStyle (vscrollbar.querySelector(".vslider"));
 					}
 					if (hsliderwidth <= 100) {
-						that.innerHTML += "<div class='scrollbar hscrollbar'><div class='hslider'></div></div>";
+						that.insertAdjacentHTML("beforeend", "<div class='scrollbar hscrollbar'><div class='hslider'></div></div>");
 
 						hscrollbar = that.querySelector(".hscrollbar");
 						hscrollbar.style.position = "absolute";
@@ -321,7 +320,7 @@
 					// Need to be recall after innerHTML
 					content = that.querySelector(":not(.scrollbar)");
 
-					Array.prototype.forEach.call(that.querySelectorAll(".scrollbar"), function(el, i) {
+					Array.prototype.forEach.call(that.querySelectorAll(".scrollbar"), function(el) {
 						el.style.position = "absolute";
 					});
 
@@ -354,7 +353,7 @@
 								// Constrain movement
 								scrollPosY = scrollMapY = transformExtract (this.style)[1];
 							}
-							if (event.type === 'drag' || event.type === 'dragend') {
+							if (event.type === "drag" || event.type === "dragend") {
 								// Count movement delta
 								deltaY = -event.gesture.deltaY;
 								// Constrain movement
@@ -370,7 +369,7 @@
 							transition = "all 0s linear, opacity 0.25s cubic-bezier(0, 0, 0.5, 1)";
 
 							// Found out if it have twin
-							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+							if (content.getAttribute("data-twin")) content = document.querySelectorAll("[data-twin=" + content.getAttribute("data-twin") + "]");
 
 							// Move the scroll bar
 							updateVSliderPosition(content);
@@ -413,7 +412,7 @@
 								// Constrain movement
 								scrollPosX = scrollMapX = transformExtract (this.style)[0];
 							}
-							if (event.type === 'drag' || event.type === 'dragend') {
+							if (event.type === "drag" || event.type === "dragend") {
 								// Count movement delta
 								deltaX = -event.gesture.deltaX;
 								// Constrain movement
@@ -429,7 +428,7 @@
 							transition = "all 0s linear";
 
 							// Found out if it have twin
-							if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+							if (content.getAttribute("data-twin")) content = document.querySelectorAll("[data-twin=" + content.getAttribute("data-twin") + "]");
 
 							// Move the scroll bar
 							updateHSliderPosition(content);
@@ -451,8 +450,8 @@
 			elem.hammer().on("dragstart drag dragend tap", function(event) {
 				var that = this,
 					content = that.querySelector(":not(.scrollbar)"),
-					isVslider = new RegExp('(^| )' + "vslider" + '( |$)', 'gi').test(event.target.className),
-					isHslider = new RegExp('(^| )' + "hslider" + '( |$)', 'gi').test(event.target.className);
+					isVslider = new RegExp("(^| )" + "vslider" + "( |$)", "gi").test(event.target.className),
+					isHslider = new RegExp("(^| )" + "hslider" + "( |$)", "gi").test(event.target.className);
 
 				if (!isVslider && !isHslider) {
 					if (event.type === "dragstart") {
@@ -471,8 +470,8 @@
 
 						updateScrollbarSize (content, that);
 					}
-					if (event.type === 'drag') {
-						// Make a status no element can't be tap
+					if (event.type === "drag") {
+						// Make a status no element can"t be tap
 						ONSWIPE = true;
 						// Count movement delta
 						deltaX = -event.gesture.deltaX;
@@ -496,11 +495,11 @@
 
 							if (posX >= 0) {
 								originX = posX = 0;
-								scaleX = 1 - (deltaX / that.offsetWidth)
+								scaleX = 1 - (deltaX / that.offsetWidth);
 							}
 							if (posY >= 0) {
 								originY = posY = 0;
-								scaleY = 1 - (deltaY / that.offsetHeight)
+								scaleY = 1 - (deltaY / that.offsetHeight);
 							}
 						}
 
@@ -519,7 +518,7 @@
 						transition = "all 0s linear";
 						timestamp = Math.round(+new Date() / 100);
 					}
-					if (event.type === 'dragend') {
+					if (event.type === "dragend") {
 						// Count the the move speed for slow down animation
 						if (acceleratorX > 0.1)
 							posX = mapX - (deltaX * (10 * acceleratorX));
@@ -550,7 +549,7 @@
 						// Make a status no element can be tap
 						ONSWIPE = false;
 					}
-					if (event.type === 'tap') {
+					if (event.type === "tap") {
 						// Map
 						matrix = transformExtract (content.style);
 						mapX = matrix[0];
@@ -592,7 +591,7 @@
 
 
 					// Found out if it have twin
-					if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+					if (content.getAttribute("data-twin")) content = document.querySelectorAll("[data-twin=" + content.getAttribute("data-twin") + "]");
 
 					// Move the scroll bar
 					if (showScroll) {
@@ -613,7 +612,7 @@
 			});
 
 			// Assign Mouse Scroll
-			elem.on('mousewheel', function (event) {
+			elem.on("mousewheel", function (event) {
 				var that = this,
 					content = that.querySelector(":not(.scrollbar)"),
 					lastDeltaX = 0,
@@ -714,7 +713,7 @@
 				}
 
 				// Found out if it have twin
-				if (content.getAttribute("data-twin")) content = document.querySelectorAll('[data-twin=' + content.getAttribute("data-twin") + ']');
+				if (content.getAttribute("data-twin")) content = document.querySelectorAll("[data-twin=" + content.getAttribute("data-twin") + "]");
 
 				// Move the scroll bar
 				if (showScroll) {
@@ -748,5 +747,5 @@
 				event.preventDefault();
 			});
 		});
-	}
+	};
 }(jQuery, window, document));

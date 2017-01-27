@@ -1,0 +1,36 @@
+{
+  "name": "tshirt-scroll",
+  "version": "1.0.10",
+  "homepage": "https://github.com/xinix-technology/tshirt-scroll",
+  "authors": [
+    "Dwan <me@dwaan.com>"
+  ],
+  "description": "A momentum scroll event using CSS3 using touch event to use in mobile web app or mobile app",
+  "main": "tshirt-scroll.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "jquery",
+    "tshirt",
+    "touch",
+    "scroll"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "vendor",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.x",
+    "jquery-mousewheel": "~3.1.x",
+    "jquery-hammerjs": "~1.1.x"
+  },
+  "devDependencies": {
+    "lato": "~0.3.x"
+  }
+}
